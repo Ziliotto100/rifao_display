@@ -9,4 +9,13 @@ class DrawnEntry {
   DrawnEntry copyWith({String? number}) {
     return DrawnEntry(id: id, number: number ?? this.number);
   }
+
+  Map<String, dynamic> toJson() => {'id': id, 'number': number};
+
+  factory DrawnEntry.fromJson(Map<String, dynamic> json) {
+    return DrawnEntry(
+      id: json['id'] as String,
+      number: json['number'] as String,
+    );
+  }
 }

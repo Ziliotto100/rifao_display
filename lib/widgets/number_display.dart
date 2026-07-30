@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/brand_colors.dart';
 
 class NumberDisplay extends StatelessWidget {
   final String? number;
@@ -12,8 +13,8 @@ class NumberDisplay extends StatelessWidget {
     required this.number,
     required this.typing,
     this.warning = false,
-    this.color = Colors.amber,
-    this.typingColor = Colors.white54,
+    this.color = BrandColors.gold,
+    this.typingColor = BrandColors.olive,
   });
 
   @override

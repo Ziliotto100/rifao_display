@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/drawn_entry.dart';
+import '../theme/brand_colors.dart';
 
 class FullHistoryOverlay extends StatelessWidget {
   /// Lista completa, mais recente primeiro.
@@ -118,7 +119,7 @@ class FullHistoryOverlay extends StatelessWidget {
             Text(
               'Números já sorteados ($total)',
               style: const TextStyle(
-                color: Colors.amber,
+                color: BrandColors.gold,
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
               ),
@@ -158,12 +159,12 @@ class FullHistoryOverlay extends StatelessWidget {
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: isCurrent
-                                      ? Colors.amber.withOpacity(0.15)
+                                      ? BrandColors.gold.withOpacity(0.15)
                                       : Colors.white10,
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: isCurrent
-                                        ? Colors.amber
+                                        ? BrandColors.gold
                                         : Colors.white24,
                                   ),
                                 ),

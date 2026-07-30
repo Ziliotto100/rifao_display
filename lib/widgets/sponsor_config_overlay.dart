@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'color_picker_field.dart';
+import '../theme/brand_colors.dart';
 
 class SponsorConfigOverlay extends StatelessWidget {
   final List<String> imagePaths;
@@ -72,7 +73,7 @@ class SponsorConfigOverlay extends StatelessWidget {
             const Text(
               'Configurações',
               style: TextStyle(
-                color: Colors.amber,
+                color: BrandColors.gold,
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
               ),
@@ -131,7 +132,7 @@ class SponsorConfigOverlay extends StatelessWidget {
                       label: Text('$value'),
                       selected: selected,
                       onSelected: (_) => onPerScreenChanged(value),
-                      selectedColor: Colors.amber,
+                      selectedColor: BrandColors.gold,
                       labelStyle: TextStyle(
                         color: selected ? Colors.black : Colors.white70,
                         fontWeight: FontWeight.bold,
@@ -159,7 +160,7 @@ class SponsorConfigOverlay extends StatelessWidget {
                       label: Text(entry.value),
                       selected: selected,
                       onSelected: (_) => onHistorySizeChanged(entry.key),
-                      selectedColor: Colors.amber,
+                      selectedColor: BrandColors.gold,
                       labelStyle: TextStyle(
                         color: selected ? Colors.black : Colors.white70,
                         fontWeight: FontWeight.bold,

@@ -8,6 +8,7 @@ import '../widgets/editing_banner.dart';
 import '../widgets/history_strip.dart';
 import '../widgets/help_overlay.dart';
 import '../widgets/full_history_overlay.dart';
+import '../widgets/final_results_overlay.dart';
 import '../widgets/reset_confirm_overlay.dart';
 import '../widgets/duplicate_warning_banner.dart';
 import '../widgets/sponsor_strip.dart';
@@ -15,6 +16,7 @@ import '../widgets/sponsor_config_overlay.dart';
 import '../widgets/dev_credit.dart';
 import '../services/sponsor_storage.dart';
 import '../services/theme_storage.dart';
+import '../services/entries_storage.dart';
 
 class DisplayScreen extends StatefulWidget {
   const DisplayScreen({super.key});
@@ -39,6 +41,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
 
   bool _showHelp = false;
   bool _showHistory = false;
+  bool _showFinalResults = false;
   bool _showResetConfirm = false;
   bool _showSponsorConfig = false;
 
@@ -66,6 +69,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
     });
     _loadSponsorConfig();
     _loadThemeConfig();
+    _loadEntries();
     _restartCursorTimer();
   }
 
@@ -95,6 +99,30 @@ class _DisplayScreenState extends State<DisplayScreen> {
       _historyTextColor = historyColor;
       _typingColor = typingColor;
     });
+  }
+
+  /// Recupera o progresso do rifão salvo no disco (se houver). É isso que
+  /// garante que uma queda de energia ou um fechamento inesperado do
+  /// programa não perca os números já sorteados: na próxima abertura eles
+  /// voltam automaticamente.
+  Future<void> _loadEntries() async {
+    final savedEntries = await EntriesStorage.loadEntries();
+    final savedCounter = await EntriesStorage.loadIdCounter();
+    if (!mounted) return;
+    setState(() {
+      _entries
+        ..clear()
+        ..addAll(savedEntries);
+      _idCounter = savedCounter;
+    });
+  }
+
+  /// Grava o estado atual dos sorteios no disco. Chamado depois de toda
+  /// alteração (confirmar, editar, excluir, resetar) pra que nada dependa
+  /// só da memória RAM.
+  void _persistEntries() {
+    EntriesStorage.saveEntries(_entries);
+    EntriesStorage.saveIdCounter(_idCounter);
   }
 
   void _updateSponsorPaths(List<String> paths) {
@@ -244,6 +272,13 @@ class _DisplayScreenState extends State<DisplayScreen> {
       return;
     }
 
+    if (_showFinalResults) {
+      if (key == LogicalKeyboardKey.keyR || key == LogicalKeyboardKey.escape) {
+        setState(() => _showFinalResults = false);
+      }
+      return;
+    }
+
     final digit = _digitFromKey(key);
     if (digit != null) {
       setState(() {
@@ -298,6 +333,11 @@ class _DisplayScreenState extends State<DisplayScreen> {
 
     if (key == LogicalKeyboardKey.keyH) {
       setState(() => _showHistory = true);
+      return;
+    }
+
+    if (key == LogicalKeyboardKey.keyR) {
+      setState(() => _showFinalResults = true);
       return;
     }
 
@@ -357,6 +397,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
       _isEditingCurrent = false;
       _clearPendingDuplicate();
     });
+    _persistEntries();
   }
 
   void _cancelEdit() {
@@ -371,6 +412,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
     setState(() {
       _entries.removeWhere((e) => e.id == id);
     });
+    _persistEntries();
   }
 
   void _editEntry(String id, String newNumber) {
@@ -380,6 +422,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
         _entries[index] = _entries[index].copyWith(number: newNumber);
       }
     });
+    _persistEntries();
   }
 
   void _performReset() {
@@ -390,15 +433,20 @@ class _DisplayScreenState extends State<DisplayScreen> {
       _showResetConfirm = false;
       _clearPendingDuplicate();
     });
+    EntriesStorage.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     final anyOverlayOpen =
-        _showHelp || _showHistory || _showResetConfirm || _showSponsorConfig;
+        _showHelp ||
+        _showHistory ||
+        _showFinalResults ||
+        _showResetConfirm ||
+        _showSponsorConfig;
 
     return MouseRegion(
-      cursor: _cursorVisible
+      cursor: (_cursorVisible || anyOverlayOpen)
           ? SystemMouseCursors.basic
           : SystemMouseCursors.none,
       onHover: (_) => _restartCursorTimer(),
@@ -459,12 +507,29 @@ class _DisplayScreenState extends State<DisplayScreen> {
                   ],
                 ),
                 const DevCredit(),
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 150,
+                    // Se o arquivo ainda não existir, não quebra a tela —
+                    // só não mostra nada no lugar.
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox.shrink(),
+                  ),
+                ),
                 if (_showHelp) const HelpOverlay(),
                 if (_showHistory)
                   FullHistoryOverlay(
                     entries: _entries,
                     onDelete: _deleteEntry,
                     onEdit: _editEntry,
+                  ),
+                if (_showFinalResults)
+                  FinalResultsOverlay(
+                    entries: _entries,
+                    numberColor: _numberColor,
                   ),
                 if (_showResetConfirm) const ResetConfirmOverlay(),
                 if (_showSponsorConfig)

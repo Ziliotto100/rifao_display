@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/display_screen.dart';
+import 'theme/brand_colors.dart';
 
 void main() {
   runApp(const RifaoApp());
@@ -15,7 +16,7 @@ class RifaoApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0D1117),
+        scaffoldBackgroundColor: BrandColors.darkGreen,
         useMaterial3: true,
       ),
       home: const DisplayScreen(),

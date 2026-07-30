@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/brand_colors.dart';
 
 class ThemeStorage {
   static const _bgKey = 'theme_background_color';
@@ -7,10 +8,10 @@ class ThemeStorage {
   static const _historyTextKey = 'theme_history_text_color';
   static const _typingKey = 'theme_typing_color';
 
-  static const Color defaultBackground = Color(0xFF0D1117);
-  static const Color defaultNumberColor = Colors.amber;
-  static const Color defaultHistoryTextColor = Colors.white70;
-  static const Color defaultTypingColor = Colors.white54;
+  static const Color defaultBackground = BrandColors.darkGreen;
+  static const Color defaultNumberColor = BrandColors.gold;
+  static const Color defaultHistoryTextColor = BrandColors.cream;
+  static const Color defaultTypingColor = BrandColors.olive;
 
   static Future<Color> loadBackground() async {
     final prefs = await SharedPreferences.getInstance();

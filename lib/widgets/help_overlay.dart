@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/brand_colors.dart';
 
 class HelpOverlay extends StatelessWidget {
   const HelpOverlay({super.key});
@@ -13,6 +14,10 @@ class HelpOverlay extends StatelessWidget {
     (
       'H',
       'Ver histórico completo (clique num número pra corrigir, no X pra excluir)',
+    ),
+    (
+      'R',
+      'Tela de resultado final — todos os números, sem edição, pro público conferir',
     ),
     ('N', 'Iniciar novo rifão (zera o histórico)'),
     ('C', 'Configurar patrocinadores, cores e tamanhos'),
@@ -32,7 +37,7 @@ class HelpOverlay extends StatelessWidget {
                 const Text(
                   'Atalhos do Rifão',
                   style: TextStyle(
-                    color: Colors.amber,
+                    color: BrandColors.gold,
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
                   ),
