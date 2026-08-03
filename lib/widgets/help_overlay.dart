@@ -19,6 +19,7 @@ class HelpOverlay extends StatelessWidget {
       'R',
       'Tela de resultado final — todos os números, sem edição, pro público conferir',
     ),
+    ('F11', 'Ligar/desligar tela cheia (some com a barra de tarefas)'),
     ('N', 'Iniciar novo rifão (zera o histórico)'),
     ('C', 'Configurar patrocinadores, cores e tamanhos'),
   ];

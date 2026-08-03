@@ -1,8 +1,17 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:window_manager/window_manager.dart';
 import 'screens/display_screen.dart';
 import 'theme/brand_colors.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // window_manager só existe pra Windows/Linux/macOS — em outras
+  // plataformas nem tenta inicializar, pra não quebrar o build.
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    await windowManager.ensureInitialized();
+  }
   runApp(const RifaoApp());
 }
 

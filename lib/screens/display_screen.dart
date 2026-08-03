@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
+import 'package:window_manager/window_manager.dart';
 import '../models/drawn_entry.dart';
 import '../widgets/number_display.dart';
 import '../widgets/prize_label.dart';
@@ -51,7 +54,8 @@ class _DisplayScreenState extends State<DisplayScreen> {
   List<String> _sponsorPaths = [];
   int _sponsorInterval = 6;
   int _sponsorPerScreen = 1;
-  int _historySize = 2;
+  int _historySize = 3;
+  int _numberSize = 3;
 
   Color _backgroundColor = ThemeStorage.defaultBackground;
   Color _numberColor = ThemeStorage.defaultNumberColor;
@@ -60,6 +64,13 @@ class _DisplayScreenState extends State<DisplayScreen> {
 
   bool _cursorVisible = true;
   Timer? _cursorHideTimer;
+
+  bool _isFullScreen = false;
+
+  // window_manager só funciona em Windows/Linux/macOS — em Android, iOS ou
+  // Web nem mostramos o botão nem tentamos chamar a API.
+  bool get _isDesktopPlatform =>
+      !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
   @override
   void initState() {
@@ -78,12 +89,14 @@ class _DisplayScreenState extends State<DisplayScreen> {
     final interval = await SponsorStorage.loadInterval();
     final perScreen = await SponsorStorage.loadPerScreen();
     final historySize = await SponsorStorage.loadHistorySize();
+    final numberSize = await SponsorStorage.loadNumberSize();
     if (!mounted) return;
     setState(() {
       _sponsorPaths = paths;
       _sponsorInterval = interval;
       _sponsorPerScreen = perScreen;
       _historySize = historySize;
+      _numberSize = numberSize;
     });
   }
 
@@ -145,6 +158,11 @@ class _DisplayScreenState extends State<DisplayScreen> {
     SponsorStorage.saveHistorySize(size);
   }
 
+  void _updateNumberSize(int size) {
+    setState(() => _numberSize = size);
+    SponsorStorage.saveNumberSize(size);
+  }
+
   void _updateBackgroundColor(Color color) {
     setState(() => _backgroundColor = color);
     ThemeStorage.saveBackground(color);
@@ -186,6 +204,17 @@ class _DisplayScreenState extends State<DisplayScreen> {
       if (!mounted) return;
       setState(() => _cursorVisible = false);
     });
+  }
+
+  /// Liga/desliga o modo tela cheia de verdade (sem borda, cobrindo a barra
+  /// de tarefas do Windows) — importante na hora de espelhar o notebook num
+  /// telão ou TV, pra não aparecer nada do sistema operacional.
+  Future<void> _toggleFullScreen() async {
+    if (!_isDesktopPlatform) return;
+    final next = !_isFullScreen;
+    await windowManager.setFullScreen(next);
+    if (!mounted) return;
+    setState(() => _isFullScreen = next);
   }
 
   @override
@@ -350,6 +379,11 @@ class _DisplayScreenState extends State<DisplayScreen> {
       setState(() => _showSponsorConfig = true);
       return;
     }
+
+    if (key == LogicalKeyboardKey.f11) {
+      _toggleFullScreen();
+      return;
+    }
   }
 
   void _clearPendingDuplicate() {
@@ -463,34 +497,46 @@ class _DisplayScreenState extends State<DisplayScreen> {
                   children: [
                     Expanded(
                       child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            PrizeLabel(
-                              prizeNumber: _displayedPrizeNumber,
-                              color: _numberColor,
-                            ),
-                            NumberDisplay(
-                              number: _currentNumber,
-                              typing: _currentInput,
-                              warning: _pendingDuplicateConfirm,
-                              color: _numberColor,
-                              typingColor: _typingColor,
-                            ),
-                            if (_pendingDuplicateConfirm)
-                              DuplicateWarningBanner(
-                                number: _pendingDuplicateNumber!,
-                              ),
-                            if (_isEditingCurrent && !_pendingDuplicateConfirm)
-                              EditingBanner(
+                        child: FittedBox(
+                          // Protege contra estouro tanto de largura quanto
+                          // de altura: se o prêmio + número + faixa de
+                          // aviso juntos não couberem no espaço disponível
+                          // (em vez de cortar/gerar erro de overflow),
+                          // tudo encolhe junto, mantendo a proporção entre
+                          // eles — nada fica um em cima do outro.
+                          fit: BoxFit.scaleDown,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              PrizeLabel(
                                 prizeNumber: _displayedPrizeNumber,
-                                onConfirm: _confirmNumber,
-                                onCancel: _cancelEdit,
+                                color: _numberColor,
                               ),
-                          ],
+                              NumberDisplay(
+                                number: _currentNumber,
+                                typing: _currentInput,
+                                warning: _pendingDuplicateConfirm,
+                                color: _numberColor,
+                                typingColor: _typingColor,
+                                sizeLevel: _numberSize,
+                              ),
+                              if (_pendingDuplicateConfirm)
+                                DuplicateWarningBanner(
+                                  number: _pendingDuplicateNumber!,
+                                ),
+                              if (_isEditingCurrent &&
+                                  !_pendingDuplicateConfirm)
+                                EditingBanner(
+                                  prizeNumber: _displayedPrizeNumber,
+                                  onConfirm: _confirmNumber,
+                                  onCancel: _cancelEdit,
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
+                    const SizedBox(height: 40),
                     HistoryStrip(
                       entries: _entries,
                       maxItems: 5,
@@ -538,6 +584,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
                     intervalSeconds: _sponsorInterval,
                     perScreen: _sponsorPerScreen,
                     historySize: _historySize,
+                    numberSize: _numberSize,
                     backgroundColor: _backgroundColor,
                     numberColor: _numberColor,
                     historyTextColor: _historyTextColor,
@@ -546,6 +593,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
                     onIntervalChanged: _updateSponsorInterval,
                     onPerScreenChanged: _updateSponsorPerScreen,
                     onHistorySizeChanged: _updateHistorySize,
+                    onNumberSizeChanged: _updateNumberSize,
                     onBackgroundColorChanged: _updateBackgroundColor,
                     onNumberColorChanged: _updateNumberColor,
                     onHistoryTextColorChanged: _updateHistoryTextColor,

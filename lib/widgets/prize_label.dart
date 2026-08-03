@@ -10,7 +10,7 @@ class PrizeLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     if (prizeNumber <= 0) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 0),
       child: Text(
         'PRÊMIO Nº ${prizeNumber.toString().padLeft(2, '0')}',
         style: TextStyle(
@@ -18,6 +18,7 @@ class PrizeLabel extends StatelessWidget {
           fontSize: 36,
           fontWeight: FontWeight.bold,
           letterSpacing: 2,
+          height: 0.9,
         ),
       ),
     );

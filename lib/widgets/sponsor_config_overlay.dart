@@ -9,6 +9,7 @@ class SponsorConfigOverlay extends StatelessWidget {
   final int intervalSeconds;
   final int perScreen;
   final int historySize;
+  final int numberSize;
   final Color backgroundColor;
   final Color numberColor;
   final Color historyTextColor;
@@ -17,6 +18,7 @@ class SponsorConfigOverlay extends StatelessWidget {
   final ValueChanged<int> onIntervalChanged;
   final ValueChanged<int> onPerScreenChanged;
   final ValueChanged<int> onHistorySizeChanged;
+  final ValueChanged<int> onNumberSizeChanged;
   final ValueChanged<Color> onBackgroundColorChanged;
   final ValueChanged<Color> onNumberColorChanged;
   final ValueChanged<Color> onHistoryTextColorChanged;
@@ -30,6 +32,7 @@ class SponsorConfigOverlay extends StatelessWidget {
     required this.intervalSeconds,
     required this.perScreen,
     required this.historySize,
+    required this.numberSize,
     required this.backgroundColor,
     required this.numberColor,
     required this.historyTextColor,
@@ -38,6 +41,7 @@ class SponsorConfigOverlay extends StatelessWidget {
     required this.onIntervalChanged,
     required this.onPerScreenChanged,
     required this.onHistorySizeChanged,
+    required this.onNumberSizeChanged,
     required this.onBackgroundColorChanged,
     required this.onNumberColorChanged,
     required this.onHistoryTextColorChanged,
@@ -62,7 +66,13 @@ class SponsorConfigOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const historySizeLabels = {1: 'Pequeno', 2: 'Médio', 3: 'Grande'};
+    const sizeLabels = {
+      3: 'Grande',
+      4: 'Gigante',
+      5: 'Extra grande',
+      6: 'Enorme',
+      7: 'Colossal',
+    };
 
     return Positioned.fill(
       child: Container(
@@ -148,11 +158,39 @@ class SponsorConfigOverlay extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
+                  'Tamanho do número atual:',
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+                const SizedBox(width: 10),
+                ...sizeLabels.entries.map((entry) {
+                  final selected = numberSize == entry.key;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: ChoiceChip(
+                      label: Text(entry.value),
+                      selected: selected,
+                      onSelected: (_) => onNumberSizeChanged(entry.key),
+                      selectedColor: BrandColors.gold,
+                      labelStyle: TextStyle(
+                        color: selected ? Colors.black : Colors.white70,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      backgroundColor: Colors.white10,
+                    ),
+                  );
+                }),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
                   'Tamanho do histórico:',
                   style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
                 const SizedBox(width: 10),
-                ...historySizeLabels.entries.map((entry) {
+                ...sizeLabels.entries.map((entry) {
                   final selected = historySize == entry.key;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),

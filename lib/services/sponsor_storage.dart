@@ -5,6 +5,7 @@ class SponsorStorage {
   static const _intervalKey = 'sponsor_interval_seconds';
   static const _perScreenKey = 'sponsor_per_screen';
   static const _historySizeKey = 'history_font_size';
+  static const _numberSizeKey = 'number_display_font_size';
 
   static Future<List<String>> loadPaths() async {
     final prefs = await SharedPreferences.getInstance();
@@ -38,15 +39,28 @@ class SponsorStorage {
   }
 
   /// Tamanho da fonte dos números no histórico embaixo.
-  /// 1 = Pequeno, 2 = Médio (padrão), 3 = Grande
+  /// 3 = Grande (padrão), 4 = Gigante, 5 = Extra grande, 6 = Enorme, 7 = Colossal
   static Future<int> loadHistorySize() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getInt(_historySizeKey) ?? 2;
-    return value.clamp(1, 3);
+    final value = prefs.getInt(_historySizeKey) ?? 3;
+    return value.clamp(3, 7);
   }
 
   static Future<void> saveHistorySize(int size) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_historySizeKey, size.clamp(1, 3));
+    await prefs.setInt(_historySizeKey, size.clamp(3, 7));
+  }
+
+  /// Tamanho da fonte do número grande em destaque (o sorteio atual).
+  /// 3 = Grande (padrão), 4 = Gigante, 5 = Extra grande, 6 = Enorme, 7 = Colossal
+  static Future<int> loadNumberSize() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getInt(_numberSizeKey) ?? 3;
+    return value.clamp(3, 7);
+  }
+
+  static Future<void> saveNumberSize(int size) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_numberSizeKey, size.clamp(3, 7));
   }
 }

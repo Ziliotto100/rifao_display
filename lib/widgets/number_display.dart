@@ -7,6 +7,7 @@ class NumberDisplay extends StatelessWidget {
   final bool warning;
   final Color color;
   final Color typingColor;
+  final int sizeLevel; // 3..7 — quanto maior, maior o número em tela
 
   const NumberDisplay({
     super.key,
@@ -15,7 +16,27 @@ class NumberDisplay extends StatelessWidget {
     this.warning = false,
     this.color = BrandColors.gold,
     this.typingColor = BrandColors.olive,
+    this.sizeLevel = 3,
   });
+
+  // Pensado pra telões grandes vistos de longe (eventos com centenas ou
+  // milhares de pessoas): removemos os níveis pequenos, que não se
+  // justificam nesse tipo de exibição.
+  double get _fontSize {
+    switch (sizeLevel) {
+      case 4:
+        return 340; // Gigante
+      case 5:
+        return 420; // Extra grande
+      case 6:
+        return 520; // Enorme
+      case 7:
+        return 640; // Colossal
+      case 3:
+      default:
+        return 260; // Grande (padrão)
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +52,19 @@ class NumberDisplay extends StatelessWidget {
       textColor = color;
     }
 
-    return Text(
-      displayText,
-      style: TextStyle(
-        fontSize: 260,
-        fontWeight: FontWeight.w900,
-        color: textColor,
-        height: 1,
+    return FittedBox(
+      // Rede de segurança: se o tamanho escolhido não couber na largura da
+      // tela (telas menores ou números com muitos dígitos), encolhe em vez
+      // de cortar ou estourar pra fora da tela.
+      fit: BoxFit.scaleDown,
+      child: Text(
+        displayText,
+        style: TextStyle(
+          fontSize: _fontSize,
+          fontWeight: FontWeight.w900,
+          color: textColor,
+          height: 0.72,
+        ),
       ),
     );
   }
