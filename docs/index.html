@@ -65,14 +65,30 @@
     text-align: center;
   }
   .status.offline { color: #E0A0A0; }
+  .logo {
+    width: min(180px, 45vw);
+    height: auto;
+    margin-bottom: 20px;
+  }
+  .credit {
+    margin-top: 12px;
+    text-align: center;
+    color: #F3EFE655;
+    font-size: 11px;
+    line-height: 1.6;
+  }
 </style>
 </head>
 <body>
+  <img class="logo" src="logo.png" alt="Rifon no Telon">
   <div class="prize" id="prizeLabel">Conectando...</div>
   <div class="number" id="numberDisplay">--</div>
   <div class="history-title">Últimos sorteados</div>
   <div class="history" id="history"></div>
   <div class="status" id="status">Rifon no Telon</div>
+  <div class="credit">
+    Desenvolvido por Ziliotto SmartDev
+  </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
