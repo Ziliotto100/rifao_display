@@ -20,6 +20,10 @@ class HelpOverlay extends StatelessWidget {
       'Tela de resultado final — todos os números, sem edição, pro público conferir',
     ),
     ('F11', 'Ligar/desligar tela cheia (some com a barra de tarefas)'),
+    (
+      'Q',
+      'QR Code pra plateia acompanhar pelo celular (número atual + histórico)',
+    ),
     ('N', 'Iniciar novo rifão (zera o histórico)'),
     ('C', 'Configurar patrocinadores, cores e tamanhos'),
   ];

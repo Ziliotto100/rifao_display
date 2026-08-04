@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Rifon no Telon</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #2F3A2E;
+    color: #F3EFE6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+  }
+  .prize {
+    color: #C7A26A;
+    font-weight: 700;
+    font-size: clamp(16px, 5vw, 22px);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .number {
+    color: #C7A26A;
+    font-weight: 900;
+    font-size: clamp(64px, 26vw, 140px);
+    line-height: 1;
+    margin: 8px 0 28px;
+  }
+  .history-title {
+    color: #F3EFE6AA;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .history {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 10px;
+    padding: 10px 16px;
+  }
+  .history-item .p { color: #F3EFE699; font-size: 13px; }
+  .history-item .n { color: #F3EFE6; font-weight: 700; font-size: 22px; }
+  .status {
+    margin-top: 32px;
+    color: #F3EFE666;
+    font-size: 11px;
+    text-align: center;
+  }
+  .status.offline { color: #E0A0A0; }
+</style>
+</head>
+<body>
+  <div class="prize" id="prizeLabel">Conectando...</div>
+  <div class="number" id="numberDisplay">--</div>
+  <div class="history-title">Últimos sorteados</div>
+  <div class="history" id="history"></div>
+  <div class="status" id="status">Rifon no Telon</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getFirestore, doc, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  // ATENÇÃO: preencha com os mesmos dados do arquivo
+  // lib/services/firebase_config.dart do app Windows.
+  const firebaseConfig = {
+    apiKey: "AIzaSyCHVXPaawNE_QV_3tzAzCNwyTj0mHAJ8tc",
+    projectId: "rifao-eventos",
+  };
+
+  const COLLECTION = "rifao_live";
+  const DOCUMENT = "estado_atual";
+
+  const prizeLabel = document.getElementById('prizeLabel');
+  const numberDisplay = document.getElementById('numberDisplay');
+  const history = document.getElementById('history');
+  const status = document.getElementById('status');
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const ref = doc(db, COLLECTION, DOCUMENT);
+
+    onSnapshot(ref, (snap) => {
+      status.textContent = 'Rifon no Telon · ao vivo';
+      status.classList.remove('offline');
+
+      if (!snap.exists()) {
+        prizeLabel.textContent = 'Aguardando o sorteio começar...';
+        numberDisplay.textContent = '--';
+        history.innerHTML = '';
+        return;
+      }
+
+      const data = snap.data();
+
+      if (data.currentNumber) {
+        prizeLabel.textContent = 'Prêmio Nº ' + String(data.prizeNumber).padStart(2, '0');
+        numberDisplay.textContent = data.currentNumber;
+      } else {
+        prizeLabel.textContent = 'Aguardando o sorteio começar...';
+        numberDisplay.textContent = '--';
+      }
+
+      history.innerHTML = '';
+      (data.history || []).forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'history-item';
+        row.innerHTML =
+          '<span class="p">Prêmio ' + String(item.prize).padStart(2, '0') + '</span>' +
+          '<span class="n">' + item.number + '</span>';
+        history.appendChild(row);
+      });
+    }, (err) => {
+      status.textContent = 'Sem conexão com o servidor — tentando de novo...';
+      status.classList.add('offline');
+    });
+  } catch (e) {
+    status.textContent = 'Erro de configuração da página. Avise o organizador.';
+    status.classList.add('offline');
+  }
+</script>
+</body>
+</html>

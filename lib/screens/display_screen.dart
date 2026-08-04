@@ -12,6 +12,7 @@ import '../widgets/history_strip.dart';
 import '../widgets/help_overlay.dart';
 import '../widgets/full_history_overlay.dart';
 import '../widgets/final_results_overlay.dart';
+import '../widgets/live_share_overlay.dart';
 import '../widgets/reset_confirm_overlay.dart';
 import '../widgets/duplicate_warning_banner.dart';
 import '../widgets/sponsor_strip.dart';
@@ -20,6 +21,7 @@ import '../widgets/dev_credit.dart';
 import '../services/sponsor_storage.dart';
 import '../services/theme_storage.dart';
 import '../services/entries_storage.dart';
+import '../services/live_share_firebase.dart';
 
 class DisplayScreen extends StatefulWidget {
   const DisplayScreen({super.key});
@@ -45,6 +47,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
   bool _showHelp = false;
   bool _showHistory = false;
   bool _showFinalResults = false;
+  bool _showLiveShare = false;
   bool _showResetConfirm = false;
   bool _showSponsorConfig = false;
 
@@ -136,6 +139,8 @@ class _DisplayScreenState extends State<DisplayScreen> {
   void _persistEntries() {
     EntriesStorage.saveEntries(_entries);
     EntriesStorage.saveIdCounter(_idCounter);
+    // Também manda pra plateia acompanhar pelo celular (se configurado).
+    LiveShareFirebase.updateState(_entries);
   }
 
   void _updateSponsorPaths(List<String> paths) {
@@ -308,6 +313,13 @@ class _DisplayScreenState extends State<DisplayScreen> {
       return;
     }
 
+    if (_showLiveShare) {
+      if (key == LogicalKeyboardKey.keyQ || key == LogicalKeyboardKey.escape) {
+        setState(() => _showLiveShare = false);
+      }
+      return;
+    }
+
     final digit = _digitFromKey(key);
     if (digit != null) {
       setState(() {
@@ -367,6 +379,11 @@ class _DisplayScreenState extends State<DisplayScreen> {
 
     if (key == LogicalKeyboardKey.keyR) {
       setState(() => _showFinalResults = true);
+      return;
+    }
+
+    if (key == LogicalKeyboardKey.keyQ) {
+      setState(() => _showLiveShare = true);
       return;
     }
 
@@ -476,6 +493,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
         _showHelp ||
         _showHistory ||
         _showFinalResults ||
+        _showLiveShare ||
         _showResetConfirm ||
         _showSponsorConfig;
 
@@ -577,6 +595,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
                     entries: _entries,
                     numberColor: _numberColor,
                   ),
+                if (_showLiveShare) const LiveShareOverlay(),
                 if (_showResetConfirm) const ResetConfirmOverlay(),
                 if (_showSponsorConfig)
                   SponsorConfigOverlay(
