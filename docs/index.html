@@ -88,6 +88,21 @@
     text-align: center;
   }
   .status.offline { color: #E0A0A0; }
+  .past-wins-banner {
+    display: none;
+    margin-top: 20px;
+    max-width: 420px;
+    width: 100%;
+    background: rgba(199,162,106,0.18);
+    border: 1px solid #C7A26A;
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #F3EFE6;
+    font-size: 14px;
+    text-align: center;
+    font-weight: 600;
+    line-height: 1.5;
+  }
   .credit {
     margin-top: 12px;
     text-align: center;
@@ -239,6 +254,7 @@
   <div class="history-title">Últimos sorteados</div>
   <div class="history" id="history"></div>
   <div class="status" id="status">Rifon no Telon</div>
+  <div class="past-wins-banner" id="pastWinsBanner"></div>
 
   <div class="mynumbers">
     <div class="mynumbers-title">Meus números</div>
@@ -299,6 +315,7 @@
   const numberDisplay = document.getElementById('numberDisplay');
   const history = document.getElementById('history');
   const status = document.getElementById('status');
+  const pastWinsBanner = document.getElementById('pastWinsBanner');
 
   // ---------- Meus números (localStorage) ----------
   const STORAGE_KEY = 'rifao_meus_numeros';
@@ -326,6 +343,59 @@
 
   let meusNumeros = loadMeusNumeros();
   let ultimoNumeroComemorado = null;
+  let ultimoSnapshotData = null;
+
+  // Mostra só os 5 mais recentes na lista visual (pra não virar uma lista
+  // gigante na tela), mas as comparações de "meus números" usam o
+  // histórico inteiro que vem do Firestore — veja renderPastWinsBanner.
+  function renderHistoryList(historyCompleto) {
+    history.innerHTML = '';
+    historyCompleto.slice(0, 5).forEach((item) => {
+      const row = document.createElement('div');
+      const isMine = meusNumeros.includes(item.number);
+      row.className = 'history-item' + (isMine ? ' mine' : '');
+      row.innerHTML =
+        '<span class="p">Prêmio ' + String(item.prize).padStart(2, '0') + '</span>' +
+        '<span class="n">' + item.number + '</span>';
+      history.appendChild(row);
+    });
+  }
+
+  // Avisa sobre números que já saíram antes de a pessoa entrar na página
+  // (ou que já saíram do topo da lista de "últimos sorteados"), pra quem
+  // chegou atrasado ou está acompanhando de casa não perder a informação.
+  function renderPastWinsBanner(data) {
+    if (!data) {
+      pastWinsBanner.style.display = 'none';
+      return;
+    }
+    const premiosGanhos = [];
+    (data.history || []).forEach((item) => {
+      if (meusNumeros.includes(item.number)) premiosGanhos.push(item.prize);
+    });
+    if (premiosGanhos.length === 0) {
+      pastWinsBanner.style.display = 'none';
+      return;
+    }
+    premiosGanhos.sort((a, b) => a - b);
+    const lista = premiosGanhos.map((p) => String(p).padStart(2, '0')).join(', ');
+    const plural = premiosGanhos.length > 1 ? 'Prêmios' : 'Prêmio';
+    pastWinsBanner.textContent =
+      '🏆 Você também foi contemplado no ' + plural + ' Nº ' + lista;
+    pastWinsBanner.style.display = 'block';
+  }
+
+  // Reaplica as duas telas acima usando o último snapshot recebido — chamado
+  // de novo sempre que a pessoa adiciona ou remove um número cadastrado.
+  function atualizarComparacoes() {
+    if (!ultimoSnapshotData) return;
+    renderHistoryList(ultimoSnapshotData.history || []);
+    renderPastWinsBanner(ultimoSnapshotData);
+    numberDisplay.classList.toggle(
+      'mine',
+      !!(ultimoSnapshotData.currentNumber && meusNumeros.includes(ultimoSnapshotData.currentNumber))
+    );
+  }
 
   function renderChips() {
     chipList.innerHTML = '';
@@ -341,6 +411,7 @@
         meusNumeros = meusNumeros.filter((n) => n !== num);
         saveMeusNumeros(meusNumeros);
         renderChips();
+        atualizarComparacoes();
       });
       chip.appendChild(removeBtn);
       chipList.appendChild(chip);
@@ -355,6 +426,7 @@
       meusNumeros.push(valor);
       saveMeusNumeros(meusNumeros);
       renderChips();
+      atualizarComparacoes();
     }
     mynumbersInput.value = '';
     mynumbersInput.focus();
@@ -393,10 +465,13 @@
         numberDisplay.textContent = '--';
         numberDisplay.classList.remove('mine');
         history.innerHTML = '';
+        pastWinsBanner.style.display = 'none';
+        ultimoSnapshotData = null;
         return;
       }
 
       const data = snap.data();
+      ultimoSnapshotData = data;
 
       if (data.currentNumber) {
         prizeLabel.textContent = 'Prêmio Nº ' + String(data.prizeNumber).padStart(2, '0');
@@ -408,16 +483,8 @@
         numberDisplay.classList.remove('mine');
       }
 
-      history.innerHTML = '';
-      (data.history || []).forEach((item) => {
-        const row = document.createElement('div');
-        const isMine = meusNumeros.includes(item.number);
-        row.className = 'history-item' + (isMine ? ' mine' : '');
-        row.innerHTML =
-          '<span class="p">Prêmio ' + String(item.prize).padStart(2, '0') + '</span>' +
-          '<span class="n">' + item.number + '</span>';
-        history.appendChild(row);
-      });
+      renderHistoryList(data.history || []);
+      renderPastWinsBanner(data);
     }, (err) => {
       status.textContent = 'Sem conexão com o servidor — tentando de novo...';
       status.classList.add('offline');
