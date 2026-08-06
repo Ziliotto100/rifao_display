@@ -268,7 +268,7 @@
         inputmode="numeric"
         pattern="[0-9]*"
         maxlength="5"
-        placeholder="Ex: 042"
+        placeholder="Ex: 1996"
         id="mynumbersInput"
       >
       <button type="submit">Adicionar</button>
@@ -380,20 +380,35 @@
   // depois dele) QUANTO o histórico completo. Sem isso, quem cadastra
   // justamente o único/último número sorteado até agora não via nenhum
   // aviso, porque esse número ainda não tinha entrado na lista de histórico.
+  // Guarda o número sorteado junto com o prêmio (não só o prêmio) pra
+  // deixar claro pra pessoa QUAL dos números dela bateu.
   function coletarPremiosGanhos(data) {
-    const premios = [];
+    const ganhos = [];
     if (data.currentNumber && numeroEstaCadastrado(data.currentNumber)) {
-      premios.push(data.prizeNumber);
+      ganhos.push({ prize: data.prizeNumber, number: data.currentNumber });
     }
     (data.history || []).forEach((item) => {
-      if (numeroEstaCadastrado(item.number)) premios.push(item.prize);
+      if (numeroEstaCadastrado(item.number)) {
+        ganhos.push({ prize: item.prize, number: item.number });
+      }
     });
-    return [...new Set(premios)].sort((a, b) => a - b);
+    // Remove duplicados (mesmo prêmio não deve aparecer duas vezes) e
+    // ordena pelo número do prêmio.
+    const vistos = new Set();
+    const unicos = [];
+    ganhos.forEach((g) => {
+      if (!vistos.has(g.prize)) {
+        vistos.add(g.prize);
+        unicos.push(g);
+      }
+    });
+    return unicos.sort((a, b) => a.prize - b.prize);
   }
 
   // Avisa sobre números que já saíram, pra quem chegou atrasado ou está
   // acompanhando de casa não perder a informação — mesmo que o número seja
-  // exatamente o que está em exibição agora.
+  // exatamente o que está em exibição agora. Mostra o número do prêmio E
+  // o número sorteado, pra ficar claro qual dos números cadastrados bateu.
   function renderPastWinsBanner(data) {
     if (!data) {
       pastWinsBanner.style.display = 'none';
@@ -404,10 +419,12 @@
       pastWinsBanner.style.display = 'none';
       return;
     }
-    const lista = premiosGanhos.map((p) => String(p).padStart(2, '0')).join(', ');
-    const plural = premiosGanhos.length > 1 ? 'Prêmios' : 'Prêmio';
+    const lista = premiosGanhos
+      .map((g) => 'Prêmio ' + String(g.prize).padStart(2, '0') + ' (nº ' + g.number + ')')
+      .join(', ');
+    const plural = premiosGanhos.length > 1 ? 'prêmios' : 'prêmio';
     pastWinsBanner.textContent =
-      '🏆 Você foi contemplado no ' + plural + ' Nº ' + lista;
+      '🏆 Você foi contemplado no ' + plural + ': ' + lista;
     pastWinsBanner.style.display = 'block';
   }
 

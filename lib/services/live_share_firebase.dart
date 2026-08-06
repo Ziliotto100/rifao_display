@@ -3,9 +3,9 @@ import 'package:http/http.dart' as http;
 import '../models/drawn_entry.dart';
 import 'firebase_config.dart';
 
-/// Manda o estado atual do sorteio (número em destaque + últimos 5) pro
-/// Firestore, usando a API REST direta — sem precisar do SDK nativo do
-/// Firebase (que tem suporte limitado pra Windows desktop).
+/// Manda o estado atual do sorteio (número em destaque + histórico
+/// completo) pro Firestore, usando a API REST direta — sem precisar do
+/// SDK nativo do Firebase (que tem suporte limitado pra Windows desktop).
 ///
 /// Os celulares da plateia leem esse mesmo documento em tempo real através
 /// da página web pública (veja o arquivo docs/index.html do repositório).
@@ -31,8 +31,13 @@ class LiveShareFirebase {
 
     try {
       final total = entries.length;
+      // Manda o histórico INTEIRO (não só os últimos 5): a página da
+      // plateia usa essa lista completa pra avisar quando um número
+      // cadastrado tiver saído em qualquer prêmio anterior, não só nos
+      // mais recentes. A tela já corta pra mostrar só os 5 últimos
+      // visualmente — ver docs/index.html.
       final history = <Map<String, dynamic>>[];
-      for (var i = 1; i < total && history.length < 5; i++) {
+      for (var i = 1; i < total; i++) {
         history.add({'prize': total - i, 'number': entries[i].number});
       }
 
