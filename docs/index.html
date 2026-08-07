@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Rifon no Telon</title>
+
+<!-- PWA: permite "Adicionar à tela inicial" e abrir como app de verdade -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2F3A2E">
+<link rel="icon" href="icons/icon-192.png">
+
+<!-- iOS não lê o manifest.json pra isso, precisa dessas tags específicas -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rifon no Telon">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   * { box-sizing: border-box; }
   body {
@@ -88,6 +99,18 @@
     text-align: center;
   }
   .status.offline { color: #E0A0A0; }
+  .install-btn {
+    margin-top: 14px;
+    background: rgba(199,162,106,0.15);
+    border: 1px solid #C7A26A;
+    color: #F3EFE6;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .install-btn:active { opacity: 0.75; }
   .past-wins-banner {
     display: none;
     margin-top: 20px;
@@ -356,6 +379,9 @@
   </div>
   <div class="history" id="history"></div>
   <div class="status" id="status">Rifon no Telon</div>
+  <button class="install-btn" id="installBtn" type="button" style="display:none;">
+    📲 Instalar app
+  </button>
   <div class="past-wins-banner" id="pastWinsBanner"></div>
 
   <div class="mynumbers">
@@ -748,6 +774,43 @@
     status.textContent = 'Erro de configuração da página. Avise o organizador.';
     status.classList.add('offline');
   }
+
+  // Registra o service worker pra virar "app de verdade" — dá pra
+  // instalar na tela inicial e abre rápido/funciona offline pro
+  // esqueleto da página (os números continuam vindo ao vivo).
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        // Se falhar (ex: aberto direto do arquivo local), o site
+        // continua funcionando normalmente, só sem o modo app/offline.
+      });
+    });
+  }
+
+  // Botão "Instalar app" — o navegador (Android/Chrome, principalmente)
+  // avisa quando dá pra instalar via este evento. No iOS/Safari não
+  // existe esse evento; lá a pessoa instala manualmente por
+  // Compartilhar → Adicionar à Tela de Início.
+  const installBtn = document.getElementById('installBtn');
+  let deferredInstallPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    installBtn.style.display = 'inline-block';
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    installBtn.style.display = 'none';
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
+  });
 </script>
 </body>
 </html>
