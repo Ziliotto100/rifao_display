@@ -245,13 +245,115 @@
     font-size: 15px;
     cursor: pointer;
   }
+  .history-header {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .history-header .history-title { margin-bottom: 0; }
+  .see-all-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #F3EFE6CC;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .see-all-btn:active { opacity: 0.7; }
+  .history { margin-top: 0; }
+  .history-title { margin-bottom: 0; }
+
+  /* --- Overlay "Ver todos os números" --- */
+  .all-numbers-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 90;
+    padding: 20px 16px;
+  }
+  .all-numbers-overlay.show { display: flex; }
+  .all-numbers-box {
+    width: 100%;
+    max-width: 420px;
+    max-height: 82vh;
+    background: #2F3A2E;
+    border: 1px solid rgba(199,162,106,0.4);
+    border-radius: 16px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+  }
+  .all-numbers-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .all-numbers-title {
+    color: #C7A26A;
+    font-weight: 800;
+    font-size: 16px;
+  }
+  .all-numbers-close {
+    background: none;
+    border: none;
+    color: #F3EFE699;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+  .all-numbers-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .filter-btn {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #F3EFE6AA;
+    border-radius: 10px;
+    padding: 8px 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .filter-btn.active {
+    background: rgba(199,162,106,0.2);
+    border-color: #C7A26A;
+    color: #F3EFE6;
+  }
+  .all-numbers-list {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .all-numbers-empty {
+    color: #F3EFE666;
+    font-size: 13px;
+    text-align: center;
+    padding: 20px 0;
+  }
 </style>
 </head>
 <body>
   <img class="logo" src="logo.png" alt="Rifon no Telon">
   <div class="prize" id="prizeLabel">Conectando...</div>
   <div class="number" id="numberDisplay">--</div>
-  <div class="history-title">Últimos sorteados</div>
+  <div class="history-header">
+    <div class="history-title">Últimos sorteados</div>
+    <button class="see-all-btn" id="seeAllBtn" type="button">Ver todos</button>
+  </div>
   <div class="history" id="history"></div>
   <div class="status" id="status">Rifon no Telon</div>
   <div class="past-wins-banner" id="pastWinsBanner"></div>
@@ -268,7 +370,7 @@
         inputmode="numeric"
         pattern="[0-9]*"
         maxlength="5"
-        placeholder="Ex: 1995"
+        placeholder="Ex: 1996"
         id="mynumbersInput"
       >
       <button type="submit">Adicionar</button>
@@ -281,6 +383,20 @@
 
   <div class="credit">
     Desenvolvido por Ziliotto SmartDev
+  </div>
+
+  <div class="all-numbers-overlay" id="allNumbersOverlay">
+    <div class="all-numbers-box">
+      <div class="all-numbers-head">
+        <div class="all-numbers-title">Todos os números sorteados</div>
+        <button class="all-numbers-close" id="allNumbersClose" type="button">✕</button>
+      </div>
+      <div class="all-numbers-filters">
+        <button class="filter-btn active" id="filterPrize" type="button">Ordem do sorteio</button>
+        <button class="filter-btn" id="filterNumber" type="button">Número</button>
+      </div>
+      <div class="all-numbers-list" id="allNumbersList"></div>
+    </div>
   </div>
 
   <div class="celebration-overlay" id="celebrationOverlay">
@@ -328,6 +444,15 @@
   const celebrationPrize = document.getElementById('celebrationPrize');
   const celebrationNumber = document.getElementById('celebrationNumber');
   const celebrationClose = document.getElementById('celebrationClose');
+
+  // ---------- Ver todos os números sorteados ----------
+  const seeAllBtn = document.getElementById('seeAllBtn');
+  const allNumbersOverlay = document.getElementById('allNumbersOverlay');
+  const allNumbersClose = document.getElementById('allNumbersClose');
+  const allNumbersList = document.getElementById('allNumbersList');
+  const filterPrize = document.getElementById('filterPrize');
+  const filterNumber = document.getElementById('filterNumber');
+  let ordemAtual = 'prize'; // 'prize' = ordem do sorteio (mais recente primeiro) | 'number' = número crescente
 
   function loadMeusNumeros() {
     try {
@@ -436,6 +561,7 @@
     if (!ultimoSnapshotData) return;
     renderHistoryList(ultimoSnapshotData.history || []);
     renderPastWinsBanner(ultimoSnapshotData);
+    if (allNumbersOverlay.classList.contains('show')) renderAllNumbersList();
     if (ultimoSnapshotData.currentNumber) {
       checkCelebration(ultimoSnapshotData.currentNumber, ultimoSnapshotData.prizeNumber);
     } else {
@@ -463,6 +589,88 @@
       chipList.appendChild(chip);
     });
   }
+
+  // Junta o número em exibição (que ainda não é "histórico") com o
+  // histórico completo, sem duplicar o mesmo prêmio — é a lista completa
+  // de tudo que já saiu até agora, usada tanto pelo banner de "já ganhei"
+  // quanto pelo modal "Ver todos".
+  function todosOsNumeros(data) {
+    if (!data) return [];
+    const todos = [];
+    if (data.currentNumber) {
+      todos.push({ prize: data.prizeNumber, number: data.currentNumber });
+    }
+    (data.history || []).forEach((item) => todos.push(item));
+    const vistos = new Set();
+    const unicos = [];
+    todos.forEach((item) => {
+      if (!vistos.has(item.prize)) {
+        vistos.add(item.prize);
+        unicos.push(item);
+      }
+    });
+    return unicos;
+  }
+
+  function renderAllNumbersList() {
+    const lista = todosOsNumeros(ultimoSnapshotData);
+    allNumbersList.innerHTML = '';
+
+    if (lista.length === 0) {
+      const vazio = document.createElement('div');
+      vazio.className = 'all-numbers-empty';
+      vazio.textContent = 'Nenhum número sorteado ainda.';
+      allNumbersList.appendChild(vazio);
+      return;
+    }
+
+    const ordenada = [...lista].sort((a, b) => {
+      if (ordemAtual === 'number') {
+        return parseInt(a.number, 10) - parseInt(b.number, 10);
+      }
+      return b.prize - a.prize; // ordem do sorteio: mais recente primeiro
+    });
+
+    ordenada.forEach((item) => {
+      const row = document.createElement('div');
+      const isMine = numeroEstaCadastrado(item.number);
+      row.className = 'history-item' + (isMine ? ' mine' : '');
+      row.innerHTML =
+        '<span class="p">Prêmio ' + String(item.prize).padStart(2, '0') + '</span>' +
+        '<span class="n">' + item.number + '</span>';
+      allNumbersList.appendChild(row);
+    });
+  }
+
+  seeAllBtn.addEventListener('click', () => {
+    renderAllNumbersList();
+    allNumbersOverlay.classList.add('show');
+  });
+
+  allNumbersClose.addEventListener('click', () => {
+    allNumbersOverlay.classList.remove('show');
+  });
+
+  // Fecha clicando fora da caixa (no fundo escurecido)
+  allNumbersOverlay.addEventListener('click', (e) => {
+    if (e.target === allNumbersOverlay) {
+      allNumbersOverlay.classList.remove('show');
+    }
+  });
+
+  filterPrize.addEventListener('click', () => {
+    ordemAtual = 'prize';
+    filterPrize.classList.add('active');
+    filterNumber.classList.remove('active');
+    renderAllNumbersList();
+  });
+
+  filterNumber.addEventListener('click', () => {
+    ordemAtual = 'number';
+    filterNumber.classList.add('active');
+    filterPrize.classList.remove('active');
+    renderAllNumbersList();
+  });
 
   mynumbersForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -531,6 +739,7 @@
 
       renderHistoryList(data.history || []);
       renderPastWinsBanner(data);
+      if (allNumbersOverlay.classList.contains('show')) renderAllNumbersList();
     }, (err) => {
       status.textContent = 'Sem conexão com o servidor — tentando de novo...';
       status.classList.add('offline');

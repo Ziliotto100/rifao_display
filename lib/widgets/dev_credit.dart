@@ -7,7 +7,7 @@ class DevCredit extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned(
       right: 16,
-      top: 16,
+      bottom: 8,
       child: Text(
         'Desenvolvido por Ziliotto SmartDev',
         style: TextStyle(color: Colors.white.withOpacity(0.18), fontSize: 12),

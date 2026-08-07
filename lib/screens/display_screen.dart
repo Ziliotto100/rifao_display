@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 import '../models/drawn_entry.dart';
 import '../widgets/number_display.dart';
@@ -48,6 +49,10 @@ class _DisplayScreenState extends State<DisplayScreen> {
   bool _showHistory = false;
   bool _showFinalResults = false;
   bool _showLiveShare = false;
+  // QR pequeno fixo no canto (tecla W), independente da tela cheia (Q) —
+  // fica visível o tempo todo pra quem quiser escanear sem interromper a
+  // exibição do número atual.
+  bool _showCornerQr = false;
   bool _showResetConfirm = false;
   bool _showSponsorConfig = false;
 
@@ -387,6 +392,11 @@ class _DisplayScreenState extends State<DisplayScreen> {
       return;
     }
 
+    if (key == LogicalKeyboardKey.keyW) {
+      setState(() => _showCornerQr = !_showCornerQr);
+      return;
+    }
+
     if (key == LogicalKeyboardKey.keyN) {
       setState(() => _showResetConfirm = true);
       return;
@@ -583,6 +593,52 @@ class _DisplayScreenState extends State<DisplayScreen> {
                         const SizedBox.shrink(),
                   ),
                 ),
+                if (_showCornerQr && LiveShareFirebase.isConfigured)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Column(
+                      children: [
+                        Tooltip(
+                          message: 'Clique para ampliar',
+                          child: GestureDetector(
+                            // Clicar no QR pequeno abre a mesma tela cheia
+                            // da tecla Q, pra quem quiser um QR maior pra
+                            // escanear.
+                            onTap: () => setState(() => _showLiveShare = true),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.35),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: QrImageView(
+                                data: liveShareUrl,
+                                size: 150,
+                                backgroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Acompanhe pelo celular',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 if (_showHelp) const HelpOverlay(),
                 if (_showHistory)
                   FullHistoryOverlay(

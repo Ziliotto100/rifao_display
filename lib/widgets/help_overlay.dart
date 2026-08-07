@@ -24,6 +24,10 @@ class HelpOverlay extends StatelessWidget {
       'Q',
       'QR Code pra plateia acompanhar pelo celular (número atual + histórico)',
     ),
+    (
+      'W',
+      'Mostrar/esconder QR Code pequeno fixo no canto (clique nele pra ampliar)',
+    ),
     ('N', 'Iniciar novo rifão (zera o histórico)'),
     ('C', 'Configurar patrocinadores, cores e tamanhos'),
   ];
