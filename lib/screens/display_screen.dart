@@ -23,6 +23,9 @@ import '../services/sponsor_storage.dart';
 import '../services/theme_storage.dart';
 import '../services/entries_storage.dart';
 import '../services/live_share_firebase.dart';
+import '../services/auth_service.dart';
+import '../theme/brand_colors.dart';
+import 'login_screen.dart';
 
 class DisplayScreen extends StatefulWidget {
   const DisplayScreen({super.key});
@@ -227,6 +230,44 @@ class _DisplayScreenState extends State<DisplayScreen> {
     setState(() => _isFullScreen = next);
   }
 
+  /// Sai da conta (tecla L) e volta pra tela de login — útil quando o
+  /// mesmo notebook é usado por comunidades diferentes em eventos
+  /// diferentes, pra trocar de conta sem precisar reinstalar nada.
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: BrandColors.darkGreen,
+        title: const Text(
+          'Sair da conta?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Você vai precisar fazer login de novo pra continuar usando o app.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await AuthService.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   void dispose() {
     _focusNode.dispose();
@@ -404,6 +445,11 @@ class _DisplayScreenState extends State<DisplayScreen> {
 
     if (key == LogicalKeyboardKey.keyC) {
       setState(() => _showSponsorConfig = true);
+      return;
+    }
+
+    if (key == LogicalKeyboardKey.keyL) {
+      _confirmLogout();
       return;
     }
 
@@ -627,7 +673,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 7),
+                        const SizedBox(height: 6),
                         const Text(
                           'Acompanhe pelo celular',
                           style: TextStyle(

@@ -2,7 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
-import 'screens/display_screen.dart';
+import 'screens/login_screen.dart';
 import 'theme/brand_colors.dart';
 
 void main() async {
@@ -28,7 +28,11 @@ class RifaoApp extends StatelessWidget {
         scaffoldBackgroundColor: BrandColors.darkGreen,
         useMaterial3: true,
       ),
-      home: const DisplayScreen(),
+      // O app agora sempre começa pelo login de quem vai publicar o
+      // sorteio (organizador/comunidade) — a LoginScreen mesma decide se
+      // pula direto pra DisplayScreen quando já existe uma sessão válida
+      // salva nesse computador.
+      home: const LoginScreen(),
     );
   }
 }

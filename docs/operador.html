@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Rifon no Telon — Painel do organizador</title>
+<meta name="theme-color" content="#2F3A2E">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="robots" content="noindex">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #2F3A2E;
+    color: #F3EFE6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 60px;
+  }
+  .logo { height: 90px; margin-bottom: 8px; }
+  h1 {
+    font-size: 18px;
+    color: #C7A26A;
+    margin: 4px 0 2px;
+    text-align: center;
+  }
+  .subtitle {
+    color: #F3EFE699;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 400px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: #F3EFE699;
+    margin-bottom: 4px;
+    margin-top: 12px;
+  }
+  label:first-child { margin-top: 0; }
+  input[type="email"], input[type="password"], input[type="tel"], input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.06);
+    color: #F3EFE6;
+    font-size: 16px;
+  }
+  input:focus { outline: none; border-color: #C7A26A; }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .btn-primary {
+    width: 100%;
+    margin-top: 18px;
+    padding: 13px;
+    border-radius: 10px;
+    border: none;
+    background: #C7A26A;
+    color: #1E241C;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .btn-primary:disabled { opacity: 0.6; }
+  .btn-secondary {
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: transparent;
+    color: #F3EFE6CC;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 8px;
+  }
+  .btn-danger {
+    border-color: #E0A0A0;
+    color: #E0A0A0;
+  }
+  .error-box {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(224,160,160,0.12);
+    border: 1px solid #E0A0A0;
+    color: #E0A0A0;
+    font-size: 13px;
+  }
+  .hidden { display: none !important; }
+
+  /* ---- Painel logado ---- */
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .community-name { font-size: 16px; font-weight: 700; color: #F3EFE6; }
+  .prize-badge {
+    background: rgba(199,162,106,0.18);
+    border: 1px solid #C7A26A;
+    color: #C7A26A;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .current-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .current-row input { flex: 1; text-align: center; font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+  .confirm-btn {
+    padding: 0 20px;
+    border-radius: 10px;
+    border: none;
+    background: #C7A26A;
+    color: #1E241C;
+    font-weight: 800;
+    font-size: 15px;
+  }
+  .confirm-btn:disabled { opacity: 0.5; }
+  .dup-warning {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(224,160,160,0.12);
+    border: 1px solid #E0A0A0;
+    color: #E0A0A0;
+    font-size: 12px;
+  }
+  .actions-row { display: flex; gap: 8px; margin-top: 14px; }
+  .actions-row .btn-secondary { margin-top: 0; }
+
+  .history-title { font-size: 13px; color: #F3EFE699; margin: 6px 0 10px; }
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .history-item .p { color: #F3EFE699; }
+  .history-item .n { font-weight: 800; }
+  .history-empty { color: #F3EFE666; font-size: 13px; text-align: center; padding: 10px 0; }
+
+  .share-box { text-align: center; }
+  .share-link {
+    word-break: break-all;
+    font-size: 12px;
+    color: #F3EFE6AA;
+    margin-top: 8px;
+    display: block;
+  }
+  .share-qr { margin-top: 12px; border-radius: 10px; background: #fff; padding: 8px; display: inline-block; }
+  .share-qr img { display: block; width: 140px; height: 140px; }
+
+  .status-line {
+    font-size: 12px;
+    text-align: center;
+    color: #F3EFE699;
+    margin-top: 10px;
+  }
+  .status-line.offline { color: #E0A0A0; }
+</style>
+</head>
+<body>
+  <img class="logo" src="logo.png" alt="Rifon no Telon">
+  <h1>Painel do organizador</h1>
+  <div class="subtitle">Publique os números sorteados direto do celular — a plateia acompanha sem precisar criar conta.</div>
+
+  <!-- ---------- Tela de login ---------- -->
+  <div class="card" id="loginCard">
+    <label for="loginEmail">E-mail</label>
+    <input type="email" id="loginEmail" autocomplete="username" placeholder="sua@comunidade.com">
+    <label for="loginPassword">Senha</label>
+    <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn-primary" id="loginBtn" type="button">Entrar</button>
+    <div class="error-box hidden" id="loginError"></div>
+  </div>
+
+  <!-- ---------- Painel (logado) ---------- -->
+  <div class="card hidden" id="panelCard">
+    <div class="panel-header">
+      <div class="community-name" id="communityName">Comunidade</div>
+      <div class="prize-badge" id="prizeBadge">Prêmio 00</div>
+    </div>
+
+    <label for="numberInput">Número sorteado</label>
+    <div class="current-row">
+      <input type="tel" id="numberInput" placeholder="Ex: 1996" maxlength="5" inputmode="numeric">
+      <button class="confirm-btn" id="confirmBtn" type="button">OK</button>
+    </div>
+    <div class="dup-warning hidden" id="dupWarning">Esse número já saiu antes!</div>
+
+    <div class="actions-row">
+      <button class="btn-secondary" id="undoBtn" type="button" style="flex:1;">↩ Desfazer último</button>
+      <button class="btn-secondary btn-danger" id="resetBtn" type="button" style="flex:1;">Reiniciar</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="historyCard">
+    <div class="history-title">Números sorteados</div>
+    <div id="historyList"><div class="history-empty">Nenhum número ainda.</div></div>
+  </div>
+
+  <div class="card hidden" id="shareCard">
+    <div class="history-title">Link/QR pra plateia</div>
+    <div class="share-box">
+      <div class="share-qr"><img id="shareQrImg" alt="QR Code"></div>
+      <span class="share-link" id="shareLink"></span>
+      <button class="btn-secondary" id="copyLinkBtn" type="button">Copiar link</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="logoutCard">
+    <button class="btn-secondary" id="logoutBtn" type="button">Sair da conta</button>
+  </div>
+
+  <div class="status-line" id="statusLine"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, setDoc
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  // Mesmos dados do lib/services/firebase_config.dart do app Windows.
+  const firebaseConfig = {
+    apiKey: "AIzaSyCHVXPaawNE_QV_3tzAzCNwyTj0mHAJ8tc",
+    projectId: "rifao-eventos",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const $ = (id) => document.getElementById(id);
+  const loginCard = $('loginCard');
+  const panelCard = $('panelCard');
+  const historyCard = $('historyCard');
+  const shareCard = $('shareCard');
+  const logoutCard = $('logoutCard');
+  const statusLine = $('statusLine');
+
+  let entries = []; // mais recente primeiro, igual ao app Windows
+  let currentUid = null;
+
+  // ---------- LOGIN ----------
+  $('loginBtn').addEventListener('click', async () => {
+    const email = $('loginEmail').value.trim();
+    const password = $('loginPassword').value;
+    const errorBox = $('loginError');
+    errorBox.classList.add('hidden');
+
+    if (!email || !password) {
+      errorBox.textContent = 'Preencha e-mail e senha.';
+      errorBox.classList.remove('hidden');
+      return;
+    }
+
+    $('loginBtn').disabled = true;
+    $('loginBtn').textContent = 'Entrando...';
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged cuida do resto (checar se está ativo, etc).
+    } catch (e) {
+      errorBox.textContent = 'E-mail ou senha incorretos.';
+      errorBox.classList.remove('hidden');
+    } finally {
+      $('loginBtn').disabled = false;
+      $('loginBtn').textContent = 'Entrar';
+    }
+  });
+
+  $('logoutBtn').addEventListener('click', () => signOut(auth));
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      loginCard.classList.remove('hidden');
+      panelCard.classList.add('hidden');
+      historyCard.classList.add('hidden');
+      shareCard.classList.add('hidden');
+      logoutCard.classList.add('hidden');
+      currentUid = null;
+      entries = [];
+      return;
+    }
+
+    currentUid = user.uid;
+
+    // Confere se essa comunidade está liberada (campo "active" em
+    // operators/{uid}) — as regras do Firestore também checam isso na
+    // escrita, mas aqui dá pra avisar com uma mensagem clara antes.
+    let operatorData = null;
+    try {
+      const opSnap = await getDoc(doc(db, 'operators', user.uid));
+      operatorData = opSnap.exists() ? opSnap.data() : null;
+    } catch (e) {
+      statusLine.textContent = 'Não foi possível confirmar sua conta. Verifique sua internet.';
+      statusLine.classList.add('offline');
+      return;
+    }
+
+    if (!operatorData || operatorData.active !== true) {
+      loginCard.classList.remove('hidden');
+      $('loginError').textContent = operatorData
+        ? 'Sua conta está bloqueada no momento. Fale com o suporte.'
+        : 'Essa conta ainda não foi liberada. Fale com o suporte.';
+      $('loginError').classList.remove('hidden');
+      await signOut(auth);
+      return;
+    }
+
+    // Logado e liberado — mostra o painel.
+    loginCard.classList.add('hidden');
+    panelCard.classList.remove('hidden');
+    historyCard.classList.remove('hidden');
+    shareCard.classList.remove('hidden');
+    logoutCard.classList.remove('hidden');
+
+    $('communityName').textContent = operatorData.community || 'Comunidade';
+
+    const shareUrl = `${location.origin}${location.pathname.replace('operador.html', 'index.html')}?c=${user.uid}`;
+    $('shareLink').textContent = shareUrl;
+    $('shareQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(shareUrl)}`;
+
+    await carregarEstadoAtual();
+    renderTudo();
+  });
+
+  $('copyLinkBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText($('shareLink').textContent);
+      $('copyLinkBtn').textContent = 'Copiado!';
+      setTimeout(() => { $('copyLinkBtn').textContent = 'Copiar link'; }, 1500);
+    } catch (e) {
+      // Sem permissão de clipboard — a pessoa copia manualmente do texto.
+    }
+  });
+
+  // ---------- Estado do sorteio ----------
+  async function carregarEstadoAtual() {
+    try {
+      const snap = await getDoc(doc(db, 'rifao_live', currentUid));
+      if (!snap.exists()) { entries = []; return; }
+      const data = snap.data();
+      entries = [];
+      if (data.currentNumber) entries.push({ number: data.currentNumber });
+      (data.history || [])
+        .slice()
+        .sort((a, b) => b.prize - a.prize)
+        .forEach((h) => entries.push({ number: h.number }));
+    } catch (e) {
+      entries = [];
+    }
+  }
+
+  async function publicarEstado() {
+    const total = entries.length;
+    const history = entries.slice(1).map((e, i) => ({
+      prize: total - 1 - i,
+      number: e.number,
+    }));
+    const body = {
+      prizeNumber: total,
+      currentNumber: total > 0 ? entries[0].number : null,
+      updatedAt: new Date(),
+      history,
+    };
+    try {
+      await setDoc(doc(db, 'rifao_live', currentUid), body);
+      statusLine.textContent = 'Publicado ✓';
+      statusLine.classList.remove('offline');
+    } catch (e) {
+      statusLine.textContent = 'Sem internet — vai publicar assim que reconectar.';
+      statusLine.classList.add('offline');
+    }
+  }
+
+  function renderTudo() {
+    $('prizeBadge').textContent = 'Prêmio ' + String(entries.length).padStart(2, '0');
+
+    const list = $('historyList');
+    list.innerHTML = '';
+    if (entries.length === 0) {
+      list.innerHTML = '<div class="history-empty">Nenhum número ainda.</div>';
+    } else {
+      entries.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.className = 'history-item';
+        const prize = entries.length - i;
+        row.innerHTML =
+          '<span class="p">Prêmio ' + String(prize).padStart(2, '0') + '</span>' +
+          '<span class="n">' + e.number + '</span>';
+        list.appendChild(row);
+      });
+    }
+  }
+
+  $('numberInput').addEventListener('input', () => {
+    const valor = $('numberInput').value.trim();
+    const jaSaiu = valor && entries.some((e) => e.number === valor);
+    $('dupWarning').classList.toggle('hidden', !jaSaiu);
+  });
+
+  $('confirmBtn').addEventListener('click', async () => {
+    const valor = $('numberInput').value.trim();
+    if (!valor) return;
+    entries = [{ number: valor }, ...entries];
+    $('numberInput').value = '';
+    $('dupWarning').classList.add('hidden');
+    renderTudo();
+    await publicarEstado();
+  });
+
+  $('numberInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('confirmBtn').click();
+  });
+
+  $('undoBtn').addEventListener('click', async () => {
+    if (entries.length === 0) return;
+    entries = entries.slice(1);
+    renderTudo();
+    await publicarEstado();
+  });
+
+  $('resetBtn').addEventListener('click', async () => {
+    if (entries.length === 0) return;
+    if (!confirm('Reiniciar o sorteio dessa comunidade? Isso apaga todos os números já publicados.')) return;
+    entries = [];
+    renderTudo();
+    await publicarEstado();
+  });
+</script>
+</body>
+</html>

@@ -451,7 +451,10 @@
   };
 
   const COLLECTION = "rifao_live";
-  const DOCUMENT = "estado_atual";
+  // Cada comunidade publica no seu próprio documento — o ID vem do link/QR
+  // que o app Windows (ou a página do organizador) gera, ex:
+  // .../rifao_display/?c=UID_DA_COMUNIDADE
+  const COMMUNITY_ID = new URLSearchParams(window.location.search).get('c');
 
   const prizeLabel = document.getElementById('prizeLabel');
   const numberDisplay = document.getElementById('numberDisplay');
@@ -732,11 +735,16 @@
   }
 
   try {
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const ref = doc(db, COLLECTION, DOCUMENT);
+    if (!COMMUNITY_ID) {
+      status.textContent = 'Link inválido — peça o QR Code certo ao organizador.';
+      status.classList.add('offline');
+      prizeLabel.textContent = 'Não foi possível identificar o sorteio';
+    } else {
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const ref = doc(db, COLLECTION, COMMUNITY_ID);
 
-    onSnapshot(ref, (snap) => {
+      onSnapshot(ref, (snap) => {
       status.textContent = 'Rifon no Telon · ao vivo';
       status.classList.remove('offline');
 
@@ -766,10 +774,11 @@
       renderHistoryList(data.history || []);
       renderPastWinsBanner(data);
       if (allNumbersOverlay.classList.contains('show')) renderAllNumbersList();
-    }, (err) => {
-      status.textContent = 'Sem conexão com o servidor — tentando de novo...';
-      status.classList.add('offline');
-    });
+      }, (err) => {
+        status.textContent = 'Sem conexão com o servidor — tentando de novo...';
+        status.classList.add('offline');
+      });
+    }
   } catch (e) {
     status.textContent = 'Erro de configuração da página. Avise o organizador.';
     status.classList.add('offline');
