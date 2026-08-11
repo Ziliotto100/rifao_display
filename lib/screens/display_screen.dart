@@ -627,7 +627,7 @@ class _DisplayScreenState extends State<DisplayScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 7),
                         const Text(
                           'Acompanhe pelo celular',
                           style: TextStyle(
