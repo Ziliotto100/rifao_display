@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _submitting = false;
   String? _error;
   bool _obscure = true;
+  bool _rememberMe = true;
 
   @override
   void initState() {
@@ -41,9 +42,21 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _stage = _Stage.expiredOffline);
         break;
       case SessionResult.needsLogin:
+        await _prefillRememberedCredentials();
+        if (!mounted) return;
         setState(() => _stage = _Stage.form);
         break;
     }
+  }
+
+  /// Preenche e-mail/senha se a pessoa marcou "Lembrar-me" numa vez
+  /// anterior — assim só precisa clicar em "Entrar", sem digitar de novo.
+  Future<void> _prefillRememberedCredentials() async {
+    final saved = await AuthService.getRememberedCredentials();
+    if (saved == null || !mounted) return;
+    final (email, password) = saved;
+    _emailController.text = email;
+    _passwordController.text = password;
   }
 
   void _goToApp() {
@@ -68,6 +81,15 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (!mounted) return;
       if (result == SessionResult.ok) {
+        if (_rememberMe) {
+          await AuthService.saveRememberedCredentials(
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
+        } else {
+          await AuthService.clearRememberedCredentials();
+        }
+        if (!mounted) return;
         _goToApp();
       }
     } catch (e) {
@@ -199,7 +221,32 @@ class _LoginScreenState extends State<LoginScreen> {
             style: const TextStyle(color: Color(0xFFE0A0A0), fontSize: 13),
           ),
         ],
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: Checkbox(
+                value: _rememberMe,
+                onChanged: (v) => setState(() => _rememberMe = v ?? true),
+                activeColor: BrandColors.gold,
+                checkColor: Colors.black,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _rememberMe = !_rememberMe),
+                child: const Text(
+                  'Lembrar e-mail e senha neste computador',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(

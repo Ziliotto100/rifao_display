@@ -58,6 +58,7 @@ class _AdminScreenState extends State<AdminScreen> {
                     uid: o.uid,
                     community: o.community,
                     active: novoStatus,
+                    expiresAt: o.expiresAt,
                   )
                 : o,
           )
@@ -75,6 +76,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       uid: o.uid,
                       community: o.community,
                       active: op.active,
+                      expiresAt: o.expiresAt,
                     )
                   : o,
             )
@@ -84,6 +86,14 @@ class _AdminScreenState extends State<AdminScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
+  }
+
+  Future<void> _openRenewDialog(OperatorInfo op) async {
+    final renewed = await showDialog<bool>(
+      context: context,
+      builder: (context) => _RenewAccessDialog(operator: op),
+    );
+    if (renewed == true) _load();
   }
 
   Future<void> _openCreateDialog() async {
@@ -201,25 +211,58 @@ class _AdminScreenState extends State<AdminScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
-          child: SwitchListTile(
-            activeColor: BrandColors.gold,
-            value: op.active,
-            onChanged: (_) => _toggleActive(op),
-            title: Text(
-              op.community,
-              style: const TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              op.active ? 'Liberada' : 'Bloqueada',
-              style: TextStyle(
-                color: op.active ? Colors.greenAccent : Colors.redAccent,
-                fontSize: 12,
+          child: Column(
+            children: [
+              SwitchListTile(
+                activeColor: BrandColors.gold,
+                value: op.active,
+                onChanged: (_) => _toggleActive(op),
+                title: Text(
+                  op.community,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                subtitle: Text(
+                  _statusLabel(op),
+                  style: TextStyle(color: _statusColor(op), fontSize: 12),
+                ),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 12, 10),
+                child: Row(
+                  children: [
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => _openRenewDialog(op),
+                      icon: const Icon(Icons.event_available, size: 18),
+                      label: const Text('Validade'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: BrandColors.gold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
     );
+  }
+
+  String _statusLabel(OperatorInfo op) {
+    if (!op.active) return 'Bloqueada manualmente';
+    if (op.expiresAt == null) return 'Liberada · sem prazo de validade';
+    final days = op.daysRemaining!;
+    if (days < 0) return 'Acesso vencido';
+    if (days == 0) return 'Liberada · vence hoje';
+    return 'Liberada · vence em $days dia${days == 1 ? '' : 's'}';
+  }
+
+  Color _statusColor(OperatorInfo op) {
+    if (!op.active || op.isExpired) return Colors.redAccent;
+    if (op.expiresAt != null && op.daysRemaining! <= 5)
+      return Colors.orangeAccent;
+    return Colors.greenAccent;
   }
 }
 
@@ -234,8 +277,11 @@ class _CreateOperatorDialogState extends State<_CreateOperatorDialog> {
   final _communityController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  int? _selectedDays = 30; // padrão: 30 dias. null = sem prazo de validade.
   bool _loading = false;
   String? _error;
+
+  static const _dayOptions = [1, 7, 30, 365];
 
   Future<void> _submit() async {
     final community = _communityController.text.trim();
@@ -261,6 +307,7 @@ class _CreateOperatorDialogState extends State<_CreateOperatorDialog> {
         community: community,
         email: email,
         password: password,
+        days: _selectedDays,
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -284,6 +331,7 @@ class _CreateOperatorDialogState extends State<_CreateOperatorDialog> {
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _communityController,
@@ -310,6 +358,43 @@ class _CreateOperatorDialogState extends State<_CreateOperatorDialog> {
                 labelText: 'Senha (mín. 6 caracteres)',
                 labelStyle: TextStyle(color: Colors.white54),
               ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Dias de acesso',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final d in _dayOptions)
+                  ChoiceChip(
+                    label: Text('${d}d'),
+                    selected: _selectedDays == d,
+                    onSelected: (_) => setState(() => _selectedDays = d),
+                    selectedColor: BrandColors.gold,
+                    labelStyle: TextStyle(
+                      color: _selectedDays == d ? Colors.black : Colors.white70,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    backgroundColor: Colors.white.withOpacity(0.06),
+                  ),
+                ChoiceChip(
+                  label: const Text('Sem prazo'),
+                  selected: _selectedDays == null,
+                  onSelected: (_) => setState(() => _selectedDays = null),
+                  selectedColor: BrandColors.gold,
+                  labelStyle: TextStyle(
+                    color: _selectedDays == null
+                        ? Colors.black
+                        : Colors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  backgroundColor: Colors.white.withOpacity(0.06),
+                ),
+              ],
             ),
             if (_error != null) ...[
               const SizedBox(height: 10),
@@ -338,6 +423,125 @@ class _CreateOperatorDialogState extends State<_CreateOperatorDialog> {
                   ),
                 )
               : const Text('Criar'),
+        ),
+      ],
+    );
+  }
+}
+
+class _RenewAccessDialog extends StatefulWidget {
+  final OperatorInfo operator;
+  const _RenewAccessDialog({required this.operator});
+
+  @override
+  State<_RenewAccessDialog> createState() => _RenewAccessDialogState();
+}
+
+class _RenewAccessDialogState extends State<_RenewAccessDialog> {
+  int? _selectedDays = 30;
+  bool _loading = false;
+  String? _error;
+
+  static const _dayOptions = [1, 7, 30, 365];
+
+  Future<void> _submit() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await AuthService.setOperatorExpiry(widget.operator.uid, _selectedDays);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final op = widget.operator;
+    return AlertDialog(
+      backgroundColor: BrandColors.darkGreen,
+      title: Text(
+        'Validade — ${op.community}',
+        style: const TextStyle(color: Colors.white, fontSize: 17),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            op.expiresAt == null
+                ? 'Hoje: sem prazo de validade definido.'
+                : 'Hoje: vence em ${op.daysRemaining} dia(s).',
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Renovar a partir de hoje por:',
+            style: TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final d in _dayOptions)
+                ChoiceChip(
+                  label: Text('${d}d'),
+                  selected: _selectedDays == d,
+                  onSelected: (_) => setState(() => _selectedDays = d),
+                  selectedColor: BrandColors.gold,
+                  labelStyle: TextStyle(
+                    color: _selectedDays == d ? Colors.black : Colors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  backgroundColor: Colors.white.withOpacity(0.06),
+                ),
+              ChoiceChip(
+                label: const Text('Sem prazo'),
+                selected: _selectedDays == null,
+                onSelected: (_) => setState(() => _selectedDays = null),
+                selectedColor: BrandColors.gold,
+                labelStyle: TextStyle(
+                  color: _selectedDays == null ? Colors.black : Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+                backgroundColor: Colors.white.withOpacity(0.06),
+              ),
+            ],
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _error!,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _loading ? null : _submit,
+          child: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.black,
+                  ),
+                )
+              : const Text('Salvar'),
         ),
       ],
     );

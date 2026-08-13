@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../services/auth_service.dart';
 import '../services/live_share_firebase.dart';
 import '../theme/brand_colors.dart';
 
-/// URL pública da página que a plateia acessa pelo celular. Por padrão
-/// aponta pro GitHub Pages do repositório — troque aqui se você hospedar
-/// em outro lugar (ou usar um domínio próprio).
-const String liveShareUrl = 'https://ziliotto100.github.io/rifao_display/';
+/// URL pública da página que a plateia acessa pelo celular. Aponta pro
+/// GitHub Pages do repositório, com "?c=" indicando de qual comunidade é
+/// o sorteio (cada comunidade logada tem seu próprio documento no
+/// Firestore) — troque o domínio base aqui se hospedar em outro lugar.
+String get liveShareUrl {
+  final uid = AuthService.currentSession?.uid;
+  const base = 'https://ziliotto100.github.io/rifao_display/';
+  if (uid == null) return base;
+  return '$base?c=$uid';
+}
 
 /// Tela com o QR Code pra plateia escanear e acompanhar o sorteio ao vivo
 /// pelo celular. Aberta com a tecla Q.

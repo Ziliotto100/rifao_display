@@ -59,6 +59,8 @@ class AuthService {
   static const _kRefreshToken = 'auth_refresh_token';
   static const _kActive = 'auth_active_last_check';
   static const _kLastVerifiedAt = 'auth_last_verified_at';
+  static const _kRememberEmail = 'auth_remember_email';
+  static const _kRememberPassword = 'auth_remember_password';
 
   static String? _idToken;
   static AuthSession? _session;
@@ -116,10 +118,26 @@ class AuthService {
 
     try {
       // Com internet: renova o token e confere no servidor se a conta
-      // continua ativa — é a fonte da verdade.
+      // continua ativa — é a fonte da verdade. Também atualiza community
+      // e role em cache, pra não ficar com dados velhos se algo mudar no
+      // Firestore (ex: você promover alguém a admin).
       final newIdToken = await _refreshIdToken(refreshToken);
-      final active = await _checkActive(uid, newIdToken);
+      final operatorData = await _fetchOperatorDoc(uid, newIdToken);
+      final active = operatorData != null && _hasAccess(operatorData);
+      final community =
+          (operatorData?['community'] as String?) ?? _session!.community;
+      final role = (operatorData?['role'] as String?) ?? _session!.role;
+
       _idToken = newIdToken;
+      _session = AuthSession(
+        uid: uid,
+        email: _session!.email,
+        community: community,
+        role: role,
+      );
+
+      await prefs.setString(_kCommunity, community);
+      await prefs.setString(_kRole, role);
       await prefs.setBool(_kActive, active);
       await prefs.setString(
         _kLastVerifiedAt,
@@ -173,14 +191,10 @@ class AuthService {
       );
     }
 
-    final active = operatorData['active'] == true;
+    final active = _hasAccess(operatorData);
     final community = (operatorData['community'] as String?) ?? '';
     final role = (operatorData['role'] as String?) ?? 'community';
-
-    // ignore: avoid_print
-    print(
-      'DEBUG role=[$role] length=${role.length} isAdmin=${role == 'admin'}',
-    );
+    final expiresAt = operatorData['expiresAt'] as DateTime?;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kUid, uid);
@@ -203,9 +217,16 @@ class AuthService {
     );
 
     if (!active) {
-      throw const AuthException(
-        'Sua conta está bloqueada no momento. Fale com o suporte pra '
-        'regularizar o acesso.',
+      final expirou =
+          operatorData['active'] == true &&
+          expiresAt != null &&
+          DateTime.now().toUtc().isAfter(expiresAt);
+      throw AuthException(
+        expirou
+            ? 'O acesso dessa comunidade venceu. Fale com o suporte pra '
+                  'renovar.'
+            : 'Sua conta está bloqueada no momento. Fale com o suporte '
+                  'pra regularizar o acesso.',
       );
     }
 
@@ -225,6 +246,35 @@ class AuthService {
     _session = null;
   }
 
+  /// Guarda e-mail e senha neste computador, pra pré-preencher o
+  /// formulário de login da próxima vez (checkbox "Lembrar-me" na tela
+  /// de login). Fica salvo em texto simples, no mesmo nível de proteção
+  /// que já usamos pra guardar a sessão — não é criptografado, então só
+  /// use isso em computadores de confiança da comunidade.
+  static Future<void> saveRememberedCredentials(
+    String email,
+    String password,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kRememberEmail, email);
+    await prefs.setString(_kRememberPassword, password);
+  }
+
+  /// Retorna (e-mail, senha) salvos, ou null se nada foi guardado ainda.
+  static Future<(String, String)?> getRememberedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString(_kRememberEmail);
+    final password = prefs.getString(_kRememberPassword);
+    if (email == null || password == null) return null;
+    return (email, password);
+  }
+
+  static Future<void> clearRememberedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kRememberEmail);
+    await prefs.remove(_kRememberPassword);
+  }
+
   static Future<String> _refreshIdToken(String refreshToken) async {
     final response = await http
         .post(
@@ -241,14 +291,9 @@ class AuthService {
     return data['id_token'] as String;
   }
 
-  static Future<bool> _checkActive(String uid, String idToken) async {
-    final data = await _fetchOperatorDoc(uid, idToken);
-    return data != null && data['active'] == true;
-  }
-
   /// Busca o documento operators/{uid}, que só o dono (ou o admin, via
-  /// console) consegue ler — é onde fica o campo "active" usado pra
-  /// liberar/bloquear cada comunidade.
+  /// console) consegue ler — é onde ficam os campos "active" e
+  /// "expiresAt" usados pra liberar/bloquear cada comunidade.
   static Future<Map<String, dynamic>?> _fetchOperatorDoc(
     String uid,
     String idToken,
@@ -260,12 +305,6 @@ class AuthService {
         )
         .timeout(const Duration(seconds: 10));
 
-    // ignore: avoid_print
-    print(
-      'DEBUG operatorDoc uid=$uid url=${_operatorDocUri(uid)} '
-      'status=${response.statusCode} body=${response.body}',
-    );
-
     if (response.statusCode == 404) return null;
     if (response.statusCode != 200) {
       throw const AuthException('Não foi possível confirmar sua conta agora.');
@@ -273,11 +312,25 @@ class AuthService {
 
     final json = jsonDecode(response.body) as Map<String, dynamic>;
     final fields = json['fields'] as Map<String, dynamic>? ?? {};
+    final expiresAtRaw = fields['expiresAt']?['timestampValue'] as String?;
     return {
       'active': fields['active']?['booleanValue'] ?? false,
       'community': fields['community']?['stringValue'] ?? '',
       'role': fields['role']?['stringValue'] ?? 'community',
+      'expiresAt': expiresAtRaw != null
+          ? DateTime.tryParse(expiresAtRaw)
+          : null,
     };
+  }
+
+  /// Combina o campo "active" (liga/desliga manual) com a data de
+  /// validade "expiresAt" (se existir) — os dois precisam estar OK pra
+  /// conta ter acesso. Sem "expiresAt" = acesso sem prazo definido.
+  static bool _hasAccess(Map<String, dynamic> operatorData) {
+    if (operatorData['active'] != true) return false;
+    final expiresAt = operatorData['expiresAt'] as DateTime?;
+    if (expiresAt == null) return true;
+    return DateTime.now().toUtc().isBefore(expiresAt);
   }
 
   static String _extractErrorMessage(String body) {
@@ -335,11 +388,15 @@ class AuthService {
       final fields = map['fields'] as Map<String, dynamic>? ?? {};
       final role = fields['role']?['stringValue'] ?? 'community';
       if (role == 'admin') continue;
+      final expiresAtRaw = fields['expiresAt']?['timestampValue'] as String?;
       result.add(
         OperatorInfo(
           uid: name,
           community: fields['community']?['stringValue'] ?? '(sem nome)',
           active: fields['active']?['booleanValue'] ?? false,
+          expiresAt: expiresAtRaw != null
+              ? DateTime.tryParse(expiresAtRaw)
+              : null,
         ),
       );
     }
@@ -380,6 +437,43 @@ class AuthService {
     }
   }
 
+  /// Define (ou renova) a validade de acesso de uma comunidade, contando
+  /// [days] dias a partir de AGORA. Passe null pra tirar o prazo (acesso
+  /// sem data de validade, só o "active" manual controla).
+  static Future<void> setOperatorExpiry(String uid, int? days) async {
+    final token = _idToken;
+    if (token == null) throw const AuthException('Sessão expirada.');
+
+    final uri = _operatorDocUri(
+      uid,
+    ).replace(queryParameters: {'updateMask.fieldPaths': 'expiresAt'});
+
+    final expiresAt = days == null
+        ? null
+        : DateTime.now().toUtc().add(Duration(days: days));
+
+    final response = await http
+        .patch(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'fields': {
+              'expiresAt': expiresAt == null
+                  ? {'nullValue': null}
+                  : {'timestampValue': expiresAt.toIso8601String()},
+            },
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw const AuthException('Não foi possível salvar a validade.');
+    }
+  }
+
   /// Cria a conta de login (Firebase Auth) + o cadastro (Firestore) de
   /// uma comunidade nova, tudo de uma vez. Precisa estar logado como
   /// admin — a criação da conta em si usa o endpoint público de
@@ -390,6 +484,7 @@ class AuthService {
     required String community,
     required String email,
     required String password,
+    int? days,
   }) async {
     final adminToken = _idToken;
     if (adminToken == null) throw const AuthException('Sessão expirada.');
@@ -413,6 +508,10 @@ class AuthService {
     final data = jsonDecode(signUpResponse.body) as Map<String, dynamic>;
     final newUid = data['localId'] as String;
 
+    final expiresAt = days == null
+        ? null
+        : DateTime.now().toUtc().add(Duration(days: days));
+
     final docResponse = await http
         .patch(
           _operatorDocUri(newUid),
@@ -425,6 +524,8 @@ class AuthService {
               'community': {'stringValue': community.trim()},
               'role': {'stringValue': 'community'},
               'active': {'booleanValue': true},
+              if (expiresAt != null)
+                'expiresAt': {'timestampValue': expiresAt.toIso8601String()},
             },
           }),
         )
@@ -443,12 +544,23 @@ class OperatorInfo {
   final String uid;
   final String community;
   final bool active;
+  final DateTime? expiresAt;
 
   const OperatorInfo({
     required this.uid,
     required this.community,
     required this.active,
+    this.expiresAt,
   });
+
+  /// true quando tem prazo definido e ele já passou.
+  bool get isExpired =>
+      expiresAt != null && DateTime.now().toUtc().isAfter(expiresAt!);
+
+  int? get daysRemaining {
+    if (expiresAt == null) return null;
+    return expiresAt!.difference(DateTime.now().toUtc()).inDays;
+  }
 }
 
 class AuthException implements Exception {

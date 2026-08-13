@@ -456,6 +456,29 @@
   // .../rifao_display/?c=UID_DA_COMUNIDADE
   const COMMUNITY_ID = new URLSearchParams(window.location.search).get('c');
 
+  // O manifest.json tem um start_url FIXO ("index.html", sem "?c=") — se
+  // não corrigirmos isso, TODO mundo que instalar o app pelo celular
+  // (não importa de qual comunidade) sempre abriria a página sem saber
+  // qual sorteio mostrar. Aqui a gente reescreve o manifest na hora,
+  // incluindo o "?c=" de quem está instalando, e troca o link da página
+  // pra essa versão — precisa rodar ANTES da pessoa clicar em instalar.
+  if (COMMUNITY_ID) {
+    fetch('manifest.json')
+      .then((res) => res.json())
+      .then((manifest) => {
+        manifest.start_url = `index.html?c=${COMMUNITY_ID}`;
+        manifest.id = `rifon-${COMMUNITY_ID}`;
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        const manifestUrl = URL.createObjectURL(blob);
+        document.querySelector('link[rel="manifest"]').setAttribute('href', manifestUrl);
+      })
+      .catch(() => {
+        // Se der erro, o botão de instalar app simplesmente não aparece
+        // (o navegador não considera a página instalável sem manifest
+        // válido) — a página continua funcionando normalmente pelo link.
+      });
+  }
+
   const prizeLabel = document.getElementById('prizeLabel');
   const numberDisplay = document.getElementById('numberDisplay');
   const history = document.getElementById('history');
