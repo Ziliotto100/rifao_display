@@ -177,6 +177,11 @@ class AuthService {
     final community = (operatorData['community'] as String?) ?? '';
     final role = (operatorData['role'] as String?) ?? 'community';
 
+    // ignore: avoid_print
+    print(
+      'DEBUG role=[$role] length=${role.length} isAdmin=${role == 'admin'}',
+    );
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kUid, uid);
     await prefs.setString(_kEmail, email.trim());
@@ -254,6 +259,12 @@ class AuthService {
           headers: {'Authorization': 'Bearer $idToken'},
         )
         .timeout(const Duration(seconds: 10));
+
+    // ignore: avoid_print
+    print(
+      'DEBUG operatorDoc uid=$uid url=${_operatorDocUri(uid)} '
+      'status=${response.statusCode} body=${response.body}',
+    );
 
     if (response.statusCode == 404) return null;
     if (response.statusCode != 200) {
