@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Rifon no Telon</title>
+<meta name="theme-color" content="#2F3A2E">
+<link rel="icon" href="icons/icon-192.png">
+
+<!-- PWA: essa é a ÚNICA página que a gente incentiva instalar. Assim,
+     a pessoa instala uma vez só e usa pra qualquer rifão que for
+     acompanhar, sem precisar reinstalar a cada evento diferente. -->
+<link rel="manifest" href="manifest-app.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rifon no Telon">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #2F3A2E;
+    color: #F3EFE6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 60px;
+  }
+  .logo { height: 110px; margin-bottom: 12px; }
+  h1 {
+    font-size: 22px;
+    color: #C7A26A;
+    margin: 4px 0 4px;
+    text-align: center;
+  }
+  .subtitle {
+    color: #F3EFE699;
+    font-size: 13px;
+    text-align: center;
+    max-width: 340px;
+    margin-bottom: 24px;
+  }
+  .install-btn {
+    background: rgba(199,162,106,0.15);
+    border: 1px solid #C7A26A;
+    color: #F3EFE6;
+    border-radius: 20px;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 24px;
+    display: none;
+  }
+  .install-btn:active { opacity: 0.75; }
+
+  .section {
+    width: 100%;
+    max-width: 420px;
+    margin-bottom: 22px;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #F3EFE699;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+
+  .live-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    font: inherit;
+  }
+  .live-card:active { background: rgba(255,255,255,0.09); }
+  .live-card-name { font-size: 15px; font-weight: 700; }
+  .live-card-sub {
+    font-size: 12px;
+    color: #F3EFE699;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #E05A5A;
+    box-shadow: 0 0 5px #E05A5A;
+    flex-shrink: 0;
+  }
+  .live-card-arrow { color: #F3EFE666; font-size: 20px; }
+
+  .empty-state {
+    color: #F3EFE666;
+    font-size: 13px;
+    text-align: center;
+    padding: 22px 16px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 14px;
+    border: 1px dashed rgba(255,255,255,0.15);
+  }
+
+  .org-card {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+  }
+  .org-card p {
+    font-size: 13px;
+    color: #F3EFE699;
+    margin: 0 0 12px;
+  }
+  .org-btn {
+    display: inline-block;
+    background: #C7A26A;
+    color: #1E241C;
+    border-radius: 10px;
+    padding: 11px 22px;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .status-line {
+    font-size: 12px;
+    color: #F3EFE666;
+    text-align: center;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+  <img class="logo" src="logo.png" alt="Rifon no Telon">
+  <h1>Rifon no Telon</h1>
+  <div class="subtitle">Acompanhe rifões ao vivo pelo celular, sem precisar criar conta.</div>
+  <button class="install-btn" id="installBtn" type="button">📲 Instalar app</button>
+
+  <div class="section">
+    <div class="section-title">Sorteios ao vivo agora</div>
+    <div id="liveList">
+      <div class="empty-state">Carregando...</div>
+    </div>
+  </div>
+
+  <div class="org-card">
+    <p>É organizador e vai publicar os números de um sorteio?</p>
+    <a class="org-btn" href="operador.html">Entrar como organizador</a>
+  </div>
+
+  <div class="status-line" id="statusLine"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getFirestore, collection, query, where, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCHVXPaawNE_QV_3tzAzCNwyTj0mHAJ8tc",
+    projectId: "rifao-eventos",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const liveList = document.getElementById('liveList');
+  const statusLine = document.getElementById('statusLine');
+
+  try {
+    // Só traz os documentos com liveNow == true — a comunidade liga isso
+    // manualmente quando o evento começa (ou o admin desliga se ela
+    // esquecer). Leitura pública, ninguém precisa estar logado pra ver
+    // essa lista.
+    const q = query(collection(db, 'rifao_live'), where('liveNow', '==', true));
+
+    onSnapshot(
+      q,
+      (snap) => {
+        if (snap.empty) {
+          liveList.innerHTML = '<div class="empty-state">Nenhum sorteio ao vivo neste momento.</div>';
+          return;
+        }
+
+        liveList.innerHTML = '';
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          const uid = docSnap.id;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'live-card';
+          btn.innerHTML =
+            '<span>' +
+              '<span class="live-card-name">' + (data.community || 'Sorteio') + '</span>' +
+              '<span class="live-card-sub"><span class="live-dot"></span>Ao vivo agora</span>' +
+            '</span>' +
+            '<span class="live-card-arrow">›</span>';
+          btn.addEventListener('click', () => {
+            window.location.href = `index.html?c=${uid}`;
+          });
+          liveList.appendChild(btn);
+        });
+      },
+      () => {
+        liveList.innerHTML = '<div class="empty-state">Não foi possível carregar agora. Verifique sua internet.</div>';
+      }
+    );
+  } catch (e) {
+    liveList.innerHTML = '<div class="empty-state">Erro ao carregar os sorteios.</div>';
+  }
+
+  // Registra o service worker (esqueleto instalável/offline) e cuida do
+  // botão "Instalar app" — essa é a única página do site que oferece
+  // isso, pra virar um app único e reutilizável pra qualquer sorteio.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+
+  const installBtn = document.getElementById('installBtn');
+  let deferredInstallPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    installBtn.style.display = 'inline-block';
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    installBtn.style.display = 'none';
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
+    statusLine.textContent = 'App instalado! Pode abrir sempre por esse ícone.';
+  });
+</script>
+</body>
+</html>

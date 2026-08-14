@@ -1,13 +1,15 @@
-// Service worker do "Rifon no Telon" (página da plateia).
-// Só cuida do "esqueleto" do app (HTML/CSS/ícones) pra abrir rápido e
-// funcionar como app instalado. Os dados do sorteio em si (Firestore)
-// NUNCA passam por aqui — sempre buscados direto da rede, ao vivo.
+// Service worker do "Rifon no Telon". Só cuida do "esqueleto" do app.html
+// (a única página instalável) pra abrir rápido e funcionar offline. Os
+// dados do sorteio em si (Firestore) NUNCA passam por aqui — sempre
+// buscados direto da rede, ao vivo.
 
-const CACHE_NAME = 'rifon-no-telon-v1';
+const CACHE_NAME = 'rifon-no-telon-v3';
 const APP_SHELL = [
   './',
+  './app.html',
+  './manifest-app.json',
   './index.html',
-  './manifest.json',
+  './operador.html',
   './logo.png',
   './icons/icon-192.png',
   './icons/icon-512.png',

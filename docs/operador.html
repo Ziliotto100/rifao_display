@@ -125,6 +125,44 @@
     gap: 10px;
     margin-top: 16px;
   }
+  .live-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-top: 4px;
+    font-size: 13px;
+    color: #F3EFE6CC;
+  }
+  .live-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #6b6b6b;
+    flex-shrink: 0;
+  }
+  .live-dot.on { background: #E05A5A; box-shadow: 0 0 6px #E05A5A; }
+  #liveLabel { flex: 1; }
+  .live-switch { position: relative; display: inline-block; width: 42px; height: 24px; }
+  .live-switch input { opacity: 0; width: 0; height: 0; }
+  .live-switch-track {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.2);
+    border-radius: 999px;
+    transition: background .15s;
+  }
+  .live-switch-thumb {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: #F3EFE6;
+    border-radius: 50%;
+    transition: transform .15s;
+  }
+  .live-switch input:checked + .live-switch-track { background: #C7A26A; }
+  .live-switch input:checked + .live-switch-track .live-switch-thumb { transform: translateX(18px); }
   .current-row input { flex: 1; text-align: center; font-size: 22px; font-weight: 700; letter-spacing: 1px; }
   .confirm-btn {
     padding: 0 20px;
@@ -204,6 +242,15 @@
       <div class="prize-badge" id="prizeBadge">Prêmio 00</div>
     </div>
 
+    <div class="live-toggle-row" id="liveToggleRow">
+      <span class="live-dot" id="liveDot"></span>
+      <span id="liveLabel">Fora do ar</span>
+      <label class="live-switch">
+        <input type="checkbox" id="liveToggle">
+        <span class="live-switch-track"><span class="live-switch-thumb"></span></span>
+      </label>
+    </div>
+
     <label for="numberInput">Número sorteado</label>
     <div class="current-row">
       <input type="tel" id="numberInput" placeholder="Ex: 1996" maxlength="5" inputmode="numeric">
@@ -266,6 +313,8 @@
 
   let entries = []; // mais recente primeiro, igual ao app Windows
   let currentUid = null;
+  let currentCommunity = '';
+  let liveNow = false;
 
   // ---------- LOGIN ----------
   $('loginBtn').addEventListener('click', async () => {
@@ -294,7 +343,25 @@
     }
   });
 
-  $('logoutBtn').addEventListener('click', () => signOut(auth));
+  $('logoutBtn').addEventListener('click', async () => {
+    if (liveNow) {
+      liveNow = false;
+      await publicarEstado();
+    }
+    await signOut(auth);
+  });
+
+  // Mesma regra usada no app Windows: precisa estar "active" E, se
+  // tiver uma data de validade (expiresAt) definida, ainda não ter
+  // vencido.
+  function contaLiberada(operatorData) {
+    if (operatorData.active !== true) return false;
+    if (!operatorData.expiresAt) return true;
+    const venceEm = operatorData.expiresAt.toDate
+      ? operatorData.expiresAt.toDate()
+      : new Date(operatorData.expiresAt);
+    return new Date() < venceEm;
+  }
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
@@ -323,11 +390,13 @@
       return;
     }
 
-    if (!operatorData || operatorData.active !== true) {
+    if (!operatorData || !contaLiberada(operatorData)) {
       loginCard.classList.remove('hidden');
-      $('loginError').textContent = operatorData
-        ? 'Sua conta está bloqueada no momento. Fale com o suporte.'
-        : 'Essa conta ainda não foi liberada. Fale com o suporte.';
+      $('loginError').textContent = !operatorData
+        ? 'Essa conta ainda não foi liberada. Fale com o suporte.'
+        : operatorData.active !== true
+          ? 'Sua conta está bloqueada no momento. Fale com o suporte.'
+          : 'O acesso dessa comunidade venceu. Fale com o suporte pra renovar.';
       $('loginError').classList.remove('hidden');
       await signOut(auth);
       return;
@@ -340,7 +409,8 @@
     shareCard.classList.remove('hidden');
     logoutCard.classList.remove('hidden');
 
-    $('communityName').textContent = operatorData.community || 'Comunidade';
+    currentCommunity = operatorData.community || 'Comunidade';
+    $('communityName').textContent = currentCommunity;
 
     const shareUrl = `${location.origin}${location.pathname.replace('operador.html', 'index.html')}?c=${user.uid}`;
     $('shareLink').textContent = shareUrl;
@@ -364,7 +434,7 @@
   async function carregarEstadoAtual() {
     try {
       const snap = await getDoc(doc(db, 'rifao_live', currentUid));
-      if (!snap.exists()) { entries = []; return; }
+      if (!snap.exists()) { entries = []; liveNow = false; atualizarSwitchLive(); return; }
       const data = snap.data();
       entries = [];
       if (data.currentNumber) entries.push({ number: data.currentNumber });
@@ -372,10 +442,26 @@
         .slice()
         .sort((a, b) => b.prize - a.prize)
         .forEach((h) => entries.push({ number: h.number }));
+      liveNow = data.liveNow === true;
+      atualizarSwitchLive();
     } catch (e) {
       entries = [];
     }
   }
+
+  function atualizarSwitchLive() {
+    $('liveToggle').checked = liveNow;
+    $('liveDot').classList.toggle('on', liveNow);
+    $('liveLabel').textContent = liveNow
+      ? 'Ao vivo — visível pro público agora'
+      : 'Fora do ar';
+  }
+
+  $('liveToggle').addEventListener('change', async (e) => {
+    liveNow = e.target.checked;
+    atualizarSwitchLive();
+    await publicarEstado();
+  });
 
   async function publicarEstado() {
     const total = entries.length;
@@ -383,7 +469,12 @@
       prize: total - 1 - i,
       number: e.number,
     }));
+    // setDoc SEM {merge:true} substitui o documento inteiro — por isso
+    // "community" e "liveNow" precisam ir em TODA publicação, senão
+    // desaparecem do documento na próxima atualização.
     const body = {
+      community: currentCommunity,
+      liveNow,
       prizeNumber: total,
       currentNumber: total > 0 ? entries[0].number : null,
       updatedAt: new Date(),

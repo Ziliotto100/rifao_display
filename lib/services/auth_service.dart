@@ -91,6 +91,11 @@ class AuthService {
     '/databases/(default)/documents/operators/$uid',
   );
 
+  static Uri _rifaoLiveDocUri(String uid) => Uri.parse(
+    'https://firestore.googleapis.com/v1/projects/${FirebaseConfig.projectId}'
+    '/databases/(default)/documents/rifao_live/$uid',
+  );
+
   static Uri get _operatorsCollectionUri => Uri.parse(
     'https://firestore.googleapis.com/v1/projects/${FirebaseConfig.projectId}'
     '/databases/(default)/documents/operators',
@@ -471,6 +476,41 @@ class AuthService {
 
     if (response.statusCode != 200) {
       throw const AuthException('Não foi possível salvar a validade.');
+    }
+  }
+
+  /// Força o fim da transmissão ao vivo de uma comunidade (campo
+  /// rifao_live/{uid}.liveNow = false), pro caso dela esquecer de
+  /// desligar. As regras do Firestore só deixam o admin mexer nesse
+  /// campo específico — não dá pra inventar números sorteados de
+  /// ninguém por aqui.
+  static Future<void> forceEndLive(String uid) async {
+    final token = _idToken;
+    if (token == null) throw const AuthException('Sessão expirada.');
+
+    final uri = _rifaoLiveDocUri(
+      uid,
+    ).replace(queryParameters: {'updateMask.fieldPaths': 'liveNow'});
+
+    final response = await http
+        .patch(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'fields': {
+              'liveNow': {'booleanValue': false},
+            },
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    // 404 é ok aqui — significa que essa comunidade nunca publicou nada,
+    // então não tem o que encerrar.
+    if (response.statusCode != 200 && response.statusCode != 404) {
+      throw const AuthException('Não foi possível encerrar a transmissão.');
     }
   }
 

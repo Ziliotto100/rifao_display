@@ -230,6 +230,28 @@ class _DisplayScreenState extends State<DisplayScreen> {
     setState(() => _isFullScreen = next);
   }
 
+  /// Liga/desliga a transmissão ao vivo (tecla V) — é o que faz esse
+  /// sorteio aparecer (ou sumir) da lista "ao vivo agora" que o público
+  /// vê no app.html. Fica por sua conta ligar quando o evento começar e
+  /// desligar quando terminar.
+  Future<void> _toggleLiveNow() async {
+    final next = !LiveShareFirebase.liveNow;
+    setState(() {}); // já reflete no ícone antes da confirmação de rede
+    await LiveShareFirebase.setLiveNow(next, _entries);
+    if (!mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 2),
+        content: Text(
+          next
+              ? '🔴 Transmissão ao vivo LIGADA — aparece pro público agora.'
+              : '⚪ Transmissão ao vivo DESLIGADA.',
+        ),
+      ),
+    );
+  }
+
   /// Sai da conta (tecla L) e volta pra tela de login — útil quando o
   /// mesmo notebook é usado por comunidades diferentes em eventos
   /// diferentes, pra trocar de conta sem precisar reinstalar nada.
@@ -260,6 +282,9 @@ class _DisplayScreenState extends State<DisplayScreen> {
     );
     if (confirmed != true || !mounted) return;
 
+    if (LiveShareFirebase.liveNow) {
+      await LiveShareFirebase.setLiveNow(false, _entries);
+    }
     await AuthService.signOut();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -445,6 +470,11 @@ class _DisplayScreenState extends State<DisplayScreen> {
 
     if (key == LogicalKeyboardKey.keyC) {
       setState(() => _showSponsorConfig = true);
+      return;
+    }
+
+    if (key == LogicalKeyboardKey.keyV) {
+      _toggleLiveNow();
       return;
     }
 
@@ -681,6 +711,32 @@ class _DisplayScreenState extends State<DisplayScreen> {
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: LiveShareFirebase.liveNow
+                                    ? Colors.redAccent
+                                    : Colors.white38,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              LiveShareFirebase.liveNow
+                                  ? 'Ao vivo (tecla V desliga)'
+                                  : 'Fora do ar (tecla V liga)',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

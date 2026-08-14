@@ -4,17 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Rifon no Telon</title>
-
-<!-- PWA: permite "Adicionar à tela inicial" e abrir como app de verdade -->
-<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2F3A2E">
 <link rel="icon" href="icons/icon-192.png">
-
-<!-- iOS não lê o manifest.json pra isso, precisa dessas tags específicas -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Rifon no Telon">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="robots" content="noindex">
 <style>
   * { box-sizing: border-box; }
   body {
@@ -379,9 +371,6 @@
   </div>
   <div class="history" id="history"></div>
   <div class="status" id="status">Rifon no Telon</div>
-  <button class="install-btn" id="installBtn" type="button" style="display:none;">
-    📲 Instalar app
-  </button>
   <div class="past-wins-banner" id="pastWinsBanner"></div>
 
   <div class="mynumbers">
@@ -454,30 +443,9 @@
   // Cada comunidade publica no seu próprio documento — o ID vem do link/QR
   // que o app Windows (ou a página do organizador) gera, ex:
   // .../rifao_display/?c=UID_DA_COMUNIDADE
+  // (A instalação como app agora é feita pela app.html — essa página
+  // só é aberta de dentro dela ou por um link/QR direto.)
   const COMMUNITY_ID = new URLSearchParams(window.location.search).get('c');
-
-  // O manifest.json tem um start_url FIXO ("index.html", sem "?c=") — se
-  // não corrigirmos isso, TODO mundo que instalar o app pelo celular
-  // (não importa de qual comunidade) sempre abriria a página sem saber
-  // qual sorteio mostrar. Aqui a gente reescreve o manifest na hora,
-  // incluindo o "?c=" de quem está instalando, e troca o link da página
-  // pra essa versão — precisa rodar ANTES da pessoa clicar em instalar.
-  if (COMMUNITY_ID) {
-    fetch('manifest.json')
-      .then((res) => res.json())
-      .then((manifest) => {
-        manifest.start_url = `index.html?c=${COMMUNITY_ID}`;
-        manifest.id = `rifon-${COMMUNITY_ID}`;
-        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-        const manifestUrl = URL.createObjectURL(blob);
-        document.querySelector('link[rel="manifest"]').setAttribute('href', manifestUrl);
-      })
-      .catch(() => {
-        // Se der erro, o botão de instalar app simplesmente não aparece
-        // (o navegador não considera a página instalável sem manifest
-        // válido) — a página continua funcionando normalmente pelo link.
-      });
-  }
 
   const prizeLabel = document.getElementById('prizeLabel');
   const numberDisplay = document.getElementById('numberDisplay');
@@ -806,43 +774,6 @@
     status.textContent = 'Erro de configuração da página. Avise o organizador.';
     status.classList.add('offline');
   }
-
-  // Registra o service worker pra virar "app de verdade" — dá pra
-  // instalar na tela inicial e abre rápido/funciona offline pro
-  // esqueleto da página (os números continuam vindo ao vivo).
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {
-        // Se falhar (ex: aberto direto do arquivo local), o site
-        // continua funcionando normalmente, só sem o modo app/offline.
-      });
-    });
-  }
-
-  // Botão "Instalar app" — o navegador (Android/Chrome, principalmente)
-  // avisa quando dá pra instalar via este evento. No iOS/Safari não
-  // existe esse evento; lá a pessoa instala manualmente por
-  // Compartilhar → Adicionar à Tela de Início.
-  const installBtn = document.getElementById('installBtn');
-  let deferredInstallPrompt = null;
-
-  window.addEventListener('beforeinstallprompt', (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    installBtn.style.display = 'inline-block';
-  });
-
-  installBtn.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return;
-    installBtn.style.display = 'none';
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-  });
-
-  window.addEventListener('appinstalled', () => {
-    installBtn.style.display = 'none';
-  });
 </script>
 </body>
 </html>

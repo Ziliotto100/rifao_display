@@ -96,6 +96,49 @@ class _AdminScreenState extends State<AdminScreen> {
     if (renewed == true) _load();
   }
 
+  Future<void> _forceEndLive(OperatorInfo op) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: BrandColors.darkGreen,
+        title: const Text(
+          'Encerrar transmissão?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Isso tira "${op.community}" da lista de sorteios ao vivo pro '
+          'público, mesmo que ela mesma não tenha desligado ainda. Não '
+          'apaga nenhum número já sorteado.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Encerrar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await AuthService.forceEndLive(op.uid);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Transmissão de ${op.community} encerrada.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
   Future<void> _openCreateDialog() async {
     final created = await showDialog<bool>(
       context: context,
@@ -231,6 +274,14 @@ class _AdminScreenState extends State<AdminScreen> {
                 child: Row(
                   children: [
                     const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => _forceEndLive(op),
+                      icon: const Icon(Icons.wifi_off, size: 18),
+                      label: const Text('Encerrar transmissão'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white54,
+                      ),
+                    ),
                     TextButton.icon(
                       onPressed: () => _openRenewDialog(op),
                       icon: const Icon(Icons.event_available, size: 18),

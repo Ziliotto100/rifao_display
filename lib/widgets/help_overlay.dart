@@ -28,6 +28,10 @@ class HelpOverlay extends StatelessWidget {
       'W',
       'Mostrar/esconder QR Code pequeno fixo no canto (clique nele pra ampliar)',
     ),
+    (
+      'V',
+      'Ligar/desligar transmissão ao vivo (aparece ou some da lista pro público)',
+    ),
     ('L', 'Sair da conta (trocar de comunidade nesse computador)'),
     ('N', 'Iniciar novo rifão (zera o histórico)'),
     ('C', 'Configurar patrocinadores, cores e tamanhos'),

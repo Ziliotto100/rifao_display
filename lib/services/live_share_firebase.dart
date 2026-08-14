@@ -15,7 +15,19 @@ import 'firebase_config.dart';
 /// (rifao_live/{uid da comunidade}) — por isso a escrita só funciona com
 /// alguém logado (ver lib/services/auth_service.dart) e o link/QR da
 /// plateia carrega esse mesmo uid (veja lib/widgets/live_share_overlay.dart).
+///
+/// IMPORTANTE: a chamada PATCH aqui não usa "updateMask", então ela
+/// SUBSTITUI o documento inteiro a cada chamada (não é um merge parcial).
+/// Por isso TODO campo do documento (incluindo community e liveNow)
+/// precisa ser reenviado em toda atualização, ou ele desaparece.
 class LiveShareFirebase {
+  /// Controla se essa comunidade está "ao vivo agora" pro app.html (a
+  /// tela onde o público escolhe qual sorteio acompanhar) — ligado/
+  /// desligado manualmente pela comunidade (tecla V no app Windows) ou
+  /// forçado a desligar pelo admin. Guardado só na memória: cada vez que
+  /// o app abre, começa desligado até a comunidade ligar de novo.
+  static bool liveNow = false;
+
   static Uri? get _docUri {
     final uid = AuthService.currentSession?.uid;
     if (uid == null) return null;
@@ -32,14 +44,22 @@ class LiveShareFirebase {
       FirebaseConfig.apiKey.isNotEmpty &&
       AuthService.currentSession != null;
 
+  /// Liga/desliga a transmissão ao vivo e já publica a mudança na hora
+  /// (mesmo sem ter nenhum número novo sorteado).
+  static Future<void> setLiveNow(bool value, List<DrawnEntry> entries) async {
+    liveNow = value;
+    await updateState(entries);
+  }
+
   /// Envia o estado atual. Chamado toda vez que um número é confirmado,
-  /// editado, excluído ou o rifão é reiniciado. Falha silenciosamente se
-  /// não tiver internet no momento, ou se estiver em modo offline (sem
-  /// token válido) — a próxima atualização bem-sucedida corrige o que a
-  /// plateia vê.
+  /// editado, excluído, o rifão é reiniciado, ou a transmissão é ligada/
+  /// desligada. Falha silenciosamente se não tiver internet no momento,
+  /// ou se estiver em modo offline (sem token válido) — a próxima
+  /// atualização bem-sucedida corrige o que a plateia vê.
   static Future<void> updateState(List<DrawnEntry> entries) async {
     final docUri = _docUri;
     final idToken = AuthService.idToken;
+    final community = AuthService.currentSession?.community ?? '';
     if (!isConfigured || docUri == null || idToken == null) return;
 
     try {
@@ -56,6 +76,8 @@ class LiveShareFirebase {
 
       final body = {
         'fields': {
+          'community': {'stringValue': community},
+          'liveNow': {'booleanValue': liveNow},
           'prizeNumber': {'integerValue': total.toString()},
           'currentNumber': total > 0
               ? {'stringValue': entries.first.number}
