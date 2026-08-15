@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/brand_colors.dart';
-import 'display_screen.dart';
 import 'login_screen.dart';
 
 /// Painel de administração — só quem loga com role "admin" chega aqui
@@ -166,13 +165,6 @@ class _AdminScreenState extends State<AdminScreen> {
         elevation: 0,
         title: const Text('Painel de admin'),
         actions: [
-          IconButton(
-            tooltip: 'Ir pro sorteio (usando sua conta)',
-            icon: const Icon(Icons.confirmation_number_outlined),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const DisplayScreen())),
-          ),
           IconButton(
             tooltip: 'Sair',
             icon: const Icon(Icons.logout),

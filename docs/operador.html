@@ -402,6 +402,19 @@
       return;
     }
 
+    // Contas de admin só administram — não fazem sorteio nem por aqui
+    // nem pelo app Windows. Se o admin precisar rodar um rifão, ele cria
+    // uma comunidade pra si mesmo (fluxo normal).
+    if (operatorData.role === 'admin') {
+      loginCard.classList.remove('hidden');
+      $('loginError').textContent =
+        'Contas de administrador não publicam sorteios. Crie uma ' +
+        'comunidade pra isso.';
+      $('loginError').classList.remove('hidden');
+      await signOut(auth);
+      return;
+    }
+
     // Logado e liberado — mostra o painel.
     loginCard.classList.add('hidden');
     panelCard.classList.remove('hidden');
