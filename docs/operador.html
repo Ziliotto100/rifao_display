@@ -219,42 +219,240 @@
   }
   .status-line.offline { color: #E0A0A0; }
 
-  /* ---- Painel de admin ---- */
+  /* ==================== Painel de admin ==================== */
+  .admin-header {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 22px;
+  }
+  .admin-header h2 {
+    margin: 0 0 3px;
+    font-size: 19px;
+    font-weight: 700;
+    color: #F3EFE6;
+  }
+  .admin-header .admin-count {
+    margin: 0;
+    font-size: 12.5px;
+    color: #F3EFE699;
+  }
+  .ghost-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    color: #F3EFE699;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 4px;
+  }
+  .ghost-btn:hover { color: #F3EFE6; }
+
   .section-title {
-    width: 100%; max-width: 400px; font-size: 13px; font-weight: 700; color: #F3EFE699;
-    text-transform: uppercase; letter-spacing: .04em; margin: 8px 0 10px;
-    display: flex; justify-content: space-between; align-items: center;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 0 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
   }
+  .section-title span {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #F3EFE680;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(199,162,106,0.14);
+    border: 1px solid rgba(199,162,106,0.5);
+    color: #C7A26A;
+    border-radius: 9px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .btn-add:hover { background: rgba(199,162,106,0.22); }
+
   .op-item {
-    width: 100%; max-width: 400px; background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
-    padding: 14px 16px; margin-bottom: 10px;
+    width: 100%;
+    max-width: 400px;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
   }
-  .op-head { display: flex; justify-content: space-between; align-items: center; }
-  .op-name { font-size: 15px; font-weight: 700; }
-  .op-sub { font-size: 12px; margin-top: 3px; }
-  .op-sub.ok { color: #7EC790; }
-  .op-sub.warn { color: #E0B060; }
-  .op-sub.danger { color: #E0A0A0; }
-  .op-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  .op-actions .btn-secondary { width: auto; margin-top: 0; padding: 9px 14px; }
-  .empty-state { color: #F3EFE666; font-size: 13px; text-align: center; padding: 20px 0; }
-
-  .day-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-  .day-chip {
-    padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(255,255,255,0.06); color: #F3EFE6AA; font-size: 13px; font-weight: 600;
+  .op-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
   }
-  .day-chip.selected { background: #C7A26A; border-color: #C7A26A; color: #1E241C; }
+  .op-name {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: #F3EFE6;
+    line-height: 1.3;
+  }
+  .status-pill {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    white-space: nowrap;
+  }
+  .status-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .status-pill.ok { background: rgba(126,199,144,0.14); color: #7EC790; }
+  .status-pill.warn { background: rgba(224,176,96,0.16); color: #E0B060; }
+  .status-pill.danger { background: rgba(224,160,160,0.16); color: #E0A0A0; }
 
+  .op-meta {
+    font-size: 12.5px;
+    color: #F3EFE699;
+    margin-top: 4px;
+  }
+
+  .op-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .op-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 9px 4px;
+    color: #F3EFE6CC;
+    font-size: 10.5px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.15;
+  }
+  .op-action-btn .icon { font-size: 16px; }
+  .op-action-btn:hover { background: rgba(255,255,255,0.08); }
+  .op-action-btn.danger { color: #E0A0A0; }
+  .op-action-btn.danger:hover { background: rgba(224,160,160,0.1); border-color: rgba(224,160,160,0.4); }
+
+  .empty-state {
+    width: 100%;
+    max-width: 400px;
+    color: #F3EFE666;
+    font-size: 13px;
+    text-align: center;
+    padding: 34px 20px;
+    background: rgba(255,255,255,0.02);
+    border: 1px dashed rgba(255,255,255,0.14);
+    border-radius: 14px;
+  }
+
+  /* ---- Modais (nova comunidade / validade) ---- */
   .overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-    display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,18,14,0.75);
+    backdrop-filter: blur(2px);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 50;
   }
   .overlay.show { display: flex; }
-  .overlay .card { max-height: 85vh; overflow-y: auto; margin-bottom: 0; }
-
-  .toolbar { width: 100%; max-width: 400px; display: flex; justify-content: flex-end; margin-bottom: 8px; }
+  .modal-card {
+    width: 100%;
+    max-width: 440px;
+    max-height: 88vh;
+    overflow-y: auto;
+    background: #2F3A2E;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    padding: 22px 20px calc(20px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.4);
+  }
+  @media (min-width: 480px) {
+    .overlay { align-items: center; }
+    .modal-card { border-radius: 18px; }
+  }
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+    margin: 0 auto 16px;
+  }
+  .modal-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #F3EFE6;
+    margin: 0 0 3px;
+  }
+  .modal-subtitle {
+    font-size: 12.5px;
+    color: #F3EFE699;
+    margin: 0 0 18px;
+  }
+  .field-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #F3EFE680;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin: 16px 0 6px;
+  }
+  .field-label:first-of-type { margin-top: 0; }
+  .day-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .day-chip {
+    padding: 8px 15px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.05);
+    color: #F3EFE6AA;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .day-chip.selected { background: #C7A26A; border-color: #C7A26A; color: #1E241C; }
+  .modal-actions { margin-top: 22px; }
+  .btn-text {
+    width: 100%;
+    text-align: center;
+    background: none;
+    border: none;
+    color: #F3EFE699;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 12px 0 0;
+  }
+  .btn-text:hover { color: #F3EFE6; }
 </style>
 </head>
 <body>
@@ -321,44 +519,65 @@
 
   <!-- ---------- Painel de ADMIN (logado como admin) ---------- -->
   <div class="hidden" id="adminPanelWrap" style="width:100%; max-width:400px;">
-    <div class="toolbar">
-      <button class="btn-secondary" id="adminLogoutBtn" type="button" style="width:auto;">Sair</button>
+    <div class="admin-header">
+      <div>
+        <h2>Painel de Administração</h2>
+        <p class="admin-count" id="adminCount">Carregando comunidades...</p>
+      </div>
+      <button class="ghost-btn" id="adminLogoutBtn" type="button">Sair ⏏</button>
     </div>
+
     <div class="section-title">
       <span>Comunidades</span>
-      <button class="btn-secondary" id="newCommunityBtn" type="button" style="width:auto;">+ Nova comunidade</button>
+      <button class="btn-add" id="newCommunityBtn" type="button">＋ Nova comunidade</button>
     </div>
     <div id="opsList"><div class="empty-state">Carregando...</div></div>
   </div>
 
   <!-- Modal: nova comunidade -->
   <div class="overlay" id="createOverlay">
-    <div class="card">
-      <h1 style="margin-top:0;">Nova comunidade</h1>
-      <label for="newCommunity">Nome da comunidade</label>
-      <input type="text" id="newCommunity">
-      <label for="newEmail">E-mail de login</label>
-      <input type="email" id="newEmail">
-      <label for="newPassword">Senha (mín. 6 caracteres)</label>
-      <input type="password" id="newPassword">
-      <label>Dias de acesso</label>
+    <div class="modal-card">
+      <div class="modal-handle"></div>
+      <p class="modal-title">Nova comunidade</p>
+      <p class="modal-subtitle">Cria o login e já libera o acesso.</p>
+
+      <p class="field-label">Nome da comunidade</p>
+      <input type="text" id="newCommunity" placeholder="Ex: Vila Nova">
+
+      <p class="field-label">E-mail de login</p>
+      <input type="email" id="newEmail" placeholder="comunidade@email.com">
+
+      <p class="field-label">Senha</p>
+      <input type="password" id="newPassword" placeholder="Mínimo 6 caracteres">
+
+      <p class="field-label">Dias de acesso</p>
       <div class="day-chips" id="createDayChips"></div>
-      <button class="btn-primary" id="createSubmitBtn" type="button">Criar</button>
-      <button class="btn-secondary" id="createCancelBtn" type="button">Cancelar</button>
+
       <div class="error-box hidden" id="createError"></div>
+
+      <div class="modal-actions">
+        <button class="btn-primary" id="createSubmitBtn" type="button">Criar comunidade</button>
+        <button class="btn-text" id="createCancelBtn" type="button">Cancelar</button>
+      </div>
     </div>
   </div>
 
   <!-- Modal: validade -->
   <div class="overlay" id="renewOverlay">
-    <div class="card">
-      <h1 style="margin-top:0;" id="renewTitle">Validade</h1>
-      <p id="renewCurrent" style="color:#F3EFE699; font-size:13px;"></p>
-      <label>Renovar a partir de hoje por:</label>
+    <div class="modal-card">
+      <div class="modal-handle"></div>
+      <p class="modal-title" id="renewTitle">Validade</p>
+      <p class="modal-subtitle" id="renewCurrent"></p>
+
+      <p class="field-label">Renovar a partir de hoje por</p>
       <div class="day-chips" id="renewDayChips"></div>
-      <button class="btn-primary" id="renewSubmitBtn" type="button">Salvar</button>
-      <button class="btn-secondary" id="renewCancelBtn" type="button">Cancelar</button>
+
       <div class="error-box hidden" id="renewError"></div>
+
+      <div class="modal-actions">
+        <button class="btn-primary" id="renewSubmitBtn" type="button">Salvar</button>
+        <button class="btn-text" id="renewCancelBtn" type="button">Cancelar</button>
+      </div>
     </div>
   </div>
 
@@ -663,9 +882,15 @@
         });
       });
       ops.sort((a, b) => a.community.localeCompare(b.community, 'pt-BR'));
+      $('adminCount').textContent = ops.length === 0
+        ? 'Nenhuma comunidade cadastrada'
+        : ops.length === 1
+          ? '1 comunidade cadastrada'
+          : `${ops.length} comunidades cadastradas`;
       renderComunidades(ops);
     } catch (e) {
-      list.innerHTML = '<div class="empty-state">Erro ao carregar. Tente de novo.</div>';
+      $('adminCount').textContent = 'Erro ao carregar';
+      list.innerHTML = '<div class="empty-state">Não foi possível carregar as comunidades. Tente de novo.</div>';
     }
   }
 
@@ -674,20 +899,22 @@
     return Math.floor((expiresAt.getTime() - Date.now()) / 86400000);
   }
 
+  // Retorna o rótulo curto do badge (pill) e o texto de apoio embaixo do
+  // nome, separadamente — pra bater com o layout novo.
   function statusInfo(op) {
-    if (!op.active) return { text: 'Bloqueada manualmente', cls: 'danger' };
-    if (!op.expiresAt) return { text: 'Liberada · sem prazo de validade', cls: 'ok' };
+    if (!op.active) return { pill: 'Bloqueada', cls: 'danger', meta: 'Acesso bloqueado manualmente' };
+    if (!op.expiresAt) return { pill: 'Ativa', cls: 'ok', meta: 'Sem prazo de validade' };
     const dias = diasRestantes(op.expiresAt);
-    if (dias < 0) return { text: 'Acesso vencido', cls: 'danger' };
-    if (dias === 0) return { text: 'Liberada · vence hoje', cls: 'warn' };
-    if (dias <= 5) return { text: `Liberada · vence em ${dias} dia(s)`, cls: 'warn' };
-    return { text: `Liberada · vence em ${dias} dia(s)`, cls: 'ok' };
+    if (dias < 0) return { pill: 'Vencida', cls: 'danger', meta: 'O acesso já venceu' };
+    if (dias === 0) return { pill: 'Vence hoje', cls: 'warn', meta: 'Renove ainda hoje' };
+    if (dias <= 5) return { pill: `${dias} dia${dias === 1 ? '' : 's'}`, cls: 'warn', meta: 'Validade acabando' };
+    return { pill: 'Ativa', cls: 'ok', meta: `Vence em ${dias} dias` };
   }
 
   function renderComunidades(ops) {
     const list = $('opsList');
     if (ops.length === 0) {
-      list.innerHTML = '<div class="empty-state">Nenhuma comunidade cadastrada ainda.</div>';
+      list.innerHTML = '<div class="empty-state">Nenhuma comunidade cadastrada ainda.<br>Use "Nova comunidade" pra começar.</div>';
       return;
     }
     list.innerHTML = '';
@@ -699,13 +926,23 @@
         <div class="op-head">
           <div>
             <div class="op-name">${op.community}</div>
-            <div class="op-sub ${st.cls}">${st.text}</div>
+            <div class="op-meta">${st.meta}</div>
           </div>
+          <span class="status-pill ${st.cls}">${st.pill}</span>
         </div>
         <div class="op-actions">
-          <button class="btn-secondary toggle-active-btn" type="button">${op.active ? '🔓 Bloquear' : '🔒 Liberar'}</button>
-          <button class="btn-secondary renew-btn" type="button">📅 Validade</button>
-          <button class="btn-secondary btn-danger end-live-btn" type="button">📡 Encerrar transmissão</button>
+          <button class="op-action-btn toggle-active-btn" type="button">
+            <span class="icon">${op.active ? '🔒' : '🔓'}</span>
+            <span>${op.active ? 'Bloquear' : 'Liberar'}</span>
+          </button>
+          <button class="op-action-btn renew-btn" type="button">
+            <span class="icon">📅</span>
+            <span>Validade</span>
+          </button>
+          <button class="op-action-btn danger end-live-btn" type="button">
+            <span class="icon">📡</span>
+            <span>Encerrar</span>
+          </button>
         </div>
       `;
       item.querySelector('.toggle-active-btn').addEventListener('click', () => toggleActive(op, !op.active));
