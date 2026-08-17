@@ -3,7 +3,7 @@
 // dados do sorteio em si (Firestore) NUNCA passam por aqui — sempre
 // buscados direto da rede, ao vivo.
 
-const CACHE_NAME = 'rifon-no-telon-v3';
+const CACHE_NAME = 'rifon-no-telon-v5';
 const APP_SHELL = [
   './',
   './app.html',

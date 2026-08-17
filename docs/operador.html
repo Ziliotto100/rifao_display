@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Rifon no Telon — Painel do organizador</title>
+<title>Rifon no Telon — Entrar</title>
 <meta name="theme-color" content="#2F3A2E">
 <link rel="icon" href="icons/icon-192.png">
 <meta name="robots" content="noindex">
@@ -218,12 +218,49 @@
     margin-top: 10px;
   }
   .status-line.offline { color: #E0A0A0; }
+
+  /* ---- Painel de admin ---- */
+  .section-title {
+    width: 100%; max-width: 400px; font-size: 13px; font-weight: 700; color: #F3EFE699;
+    text-transform: uppercase; letter-spacing: .04em; margin: 8px 0 10px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .op-item {
+    width: 100%; max-width: 400px; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .op-head { display: flex; justify-content: space-between; align-items: center; }
+  .op-name { font-size: 15px; font-weight: 700; }
+  .op-sub { font-size: 12px; margin-top: 3px; }
+  .op-sub.ok { color: #7EC790; }
+  .op-sub.warn { color: #E0B060; }
+  .op-sub.danger { color: #E0A0A0; }
+  .op-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .op-actions .btn-secondary { width: auto; margin-top: 0; padding: 9px 14px; }
+  .empty-state { color: #F3EFE666; font-size: 13px; text-align: center; padding: 20px 0; }
+
+  .day-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .day-chip {
+    padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.06); color: #F3EFE6AA; font-size: 13px; font-weight: 600;
+  }
+  .day-chip.selected { background: #C7A26A; border-color: #C7A26A; color: #1E241C; }
+
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+  }
+  .overlay.show { display: flex; }
+  .overlay .card { max-height: 85vh; overflow-y: auto; margin-bottom: 0; }
+
+  .toolbar { width: 100%; max-width: 400px; display: flex; justify-content: flex-end; margin-bottom: 8px; }
 </style>
 </head>
 <body>
   <img class="logo" src="logo.png" alt="Rifon no Telon">
-  <h1>Painel do organizador</h1>
-  <div class="subtitle">Publique os números sorteados direto do celular — a plateia acompanha sem precisar criar conta.</div>
+  <h1>Entrar</h1>
+  <div class="subtitle">Organizador ou administrador — faça login pra continuar.</div>
 
   <!-- ---------- Tela de login ---------- -->
   <div class="card" id="loginCard">
@@ -282,6 +319,49 @@
     <button class="btn-secondary" id="logoutBtn" type="button">Sair da conta</button>
   </div>
 
+  <!-- ---------- Painel de ADMIN (logado como admin) ---------- -->
+  <div class="hidden" id="adminPanelWrap" style="width:100%; max-width:400px;">
+    <div class="toolbar">
+      <button class="btn-secondary" id="adminLogoutBtn" type="button" style="width:auto;">Sair</button>
+    </div>
+    <div class="section-title">
+      <span>Comunidades</span>
+      <button class="btn-secondary" id="newCommunityBtn" type="button" style="width:auto;">+ Nova comunidade</button>
+    </div>
+    <div id="opsList"><div class="empty-state">Carregando...</div></div>
+  </div>
+
+  <!-- Modal: nova comunidade -->
+  <div class="overlay" id="createOverlay">
+    <div class="card">
+      <h1 style="margin-top:0;">Nova comunidade</h1>
+      <label for="newCommunity">Nome da comunidade</label>
+      <input type="text" id="newCommunity">
+      <label for="newEmail">E-mail de login</label>
+      <input type="email" id="newEmail">
+      <label for="newPassword">Senha (mín. 6 caracteres)</label>
+      <input type="password" id="newPassword">
+      <label>Dias de acesso</label>
+      <div class="day-chips" id="createDayChips"></div>
+      <button class="btn-primary" id="createSubmitBtn" type="button">Criar</button>
+      <button class="btn-secondary" id="createCancelBtn" type="button">Cancelar</button>
+      <div class="error-box hidden" id="createError"></div>
+    </div>
+  </div>
+
+  <!-- Modal: validade -->
+  <div class="overlay" id="renewOverlay">
+    <div class="card">
+      <h1 style="margin-top:0;" id="renewTitle">Validade</h1>
+      <p id="renewCurrent" style="color:#F3EFE699; font-size:13px;"></p>
+      <label>Renovar a partir de hoje por:</label>
+      <div class="day-chips" id="renewDayChips"></div>
+      <button class="btn-primary" id="renewSubmitBtn" type="button">Salvar</button>
+      <button class="btn-secondary" id="renewCancelBtn" type="button">Cancelar</button>
+      <div class="error-box hidden" id="renewError"></div>
+    </div>
+  </div>
+
   <div class="status-line" id="statusLine"></div>
 
 <script type="module">
@@ -290,7 +370,7 @@
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, doc, getDoc, setDoc
+    getFirestore, doc, getDoc, getDocs, collection, setDoc, updateDoc
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   // Mesmos dados do lib/services/firebase_config.dart do app Windows.
@@ -309,12 +389,21 @@
   const historyCard = $('historyCard');
   const shareCard = $('shareCard');
   const logoutCard = $('logoutCard');
+  const adminPanelWrap = $('adminPanelWrap');
   const statusLine = $('statusLine');
 
   let entries = []; // mais recente primeiro, igual ao app Windows
   let currentUid = null;
   let currentCommunity = '';
   let liveNow = false;
+
+  function hideAllPanels() {
+    panelCard.classList.add('hidden');
+    historyCard.classList.add('hidden');
+    shareCard.classList.add('hidden');
+    logoutCard.classList.add('hidden');
+    adminPanelWrap.classList.add('hidden');
+  }
 
   // ---------- LOGIN ----------
   $('loginBtn').addEventListener('click', async () => {
@@ -333,7 +422,7 @@
     $('loginBtn').textContent = 'Entrando...';
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // onAuthStateChanged cuida do resto (checar se está ativo, etc).
+      // onAuthStateChanged cuida do resto (checar se está ativo, o role, etc).
     } catch (e) {
       errorBox.textContent = 'E-mail ou senha incorretos.';
       errorBox.classList.remove('hidden');
@@ -343,13 +432,15 @@
     }
   });
 
-  $('logoutBtn').addEventListener('click', async () => {
+  async function fazerLogout() {
     if (liveNow) {
       liveNow = false;
       await publicarEstado();
     }
     await signOut(auth);
-  });
+  }
+  $('logoutBtn').addEventListener('click', fazerLogout);
+  $('adminLogoutBtn').addEventListener('click', fazerLogout);
 
   // Mesma regra usada no app Windows: precisa estar "active" E, se
   // tiver uma data de validade (expiresAt) definida, ainda não ter
@@ -366,10 +457,7 @@
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       loginCard.classList.remove('hidden');
-      panelCard.classList.add('hidden');
-      historyCard.classList.add('hidden');
-      shareCard.classList.add('hidden');
-      logoutCard.classList.add('hidden');
+      hideAllPanels();
       currentUid = null;
       entries = [];
       return;
@@ -377,7 +465,7 @@
 
     currentUid = user.uid;
 
-    // Confere se essa comunidade está liberada (campo "active" em
+    // Confere se essa conta está liberada (campo "active" em
     // operators/{uid}) — as regras do Firestore também checam isso na
     // escrita, mas aqui dá pra avisar com uma mensagem clara antes.
     let operatorData = null;
@@ -402,21 +490,18 @@
       return;
     }
 
-    // Contas de admin só administram — não fazem sorteio nem por aqui
-    // nem pelo app Windows. Se o admin precisar rodar um rifão, ele cria
-    // uma comunidade pra si mesmo (fluxo normal).
+    loginCard.classList.add('hidden');
+    hideAllPanels();
+
+    // O mesmo login serve pra admin e comunidade — o que aparece depois
+    // muda de acordo com o "role", igual no app Windows.
     if (operatorData.role === 'admin') {
-      loginCard.classList.remove('hidden');
-      $('loginError').textContent =
-        'Contas de administrador não publicam sorteios. Crie uma ' +
-        'comunidade pra isso.';
-      $('loginError').classList.remove('hidden');
-      await signOut(auth);
+      adminPanelWrap.classList.remove('hidden');
+      logoutCard.classList.remove('hidden');
+      await carregarComunidades();
       return;
     }
 
-    // Logado e liberado — mostra o painel.
-    loginCard.classList.add('hidden');
     panelCard.classList.remove('hidden');
     historyCard.classList.remove('hidden');
     shareCard.classList.remove('hidden');
@@ -556,6 +641,232 @@
     entries = [];
     renderTudo();
     await publicarEstado();
+  });
+
+  // ================= PAINEL DE ADMIN =================
+  const DAY_OPTIONS = [1, 7, 30, 365];
+
+  async function carregarComunidades() {
+    const list = $('opsList');
+    list.innerHTML = '<div class="empty-state">Carregando...</div>';
+    try {
+      const snap = await getDocs(collection(db, 'operators'));
+      const ops = [];
+      snap.forEach((d) => {
+        const data = d.data();
+        if (data.role === 'admin') return;
+        ops.push({
+          uid: d.id,
+          community: data.community || '(sem nome)',
+          active: data.active === true,
+          expiresAt: data.expiresAt ? (data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt)) : null,
+        });
+      });
+      ops.sort((a, b) => a.community.localeCompare(b.community, 'pt-BR'));
+      renderComunidades(ops);
+    } catch (e) {
+      list.innerHTML = '<div class="empty-state">Erro ao carregar. Tente de novo.</div>';
+    }
+  }
+
+  function diasRestantes(expiresAt) {
+    if (!expiresAt) return null;
+    return Math.floor((expiresAt.getTime() - Date.now()) / 86400000);
+  }
+
+  function statusInfo(op) {
+    if (!op.active) return { text: 'Bloqueada manualmente', cls: 'danger' };
+    if (!op.expiresAt) return { text: 'Liberada · sem prazo de validade', cls: 'ok' };
+    const dias = diasRestantes(op.expiresAt);
+    if (dias < 0) return { text: 'Acesso vencido', cls: 'danger' };
+    if (dias === 0) return { text: 'Liberada · vence hoje', cls: 'warn' };
+    if (dias <= 5) return { text: `Liberada · vence em ${dias} dia(s)`, cls: 'warn' };
+    return { text: `Liberada · vence em ${dias} dia(s)`, cls: 'ok' };
+  }
+
+  function renderComunidades(ops) {
+    const list = $('opsList');
+    if (ops.length === 0) {
+      list.innerHTML = '<div class="empty-state">Nenhuma comunidade cadastrada ainda.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    ops.forEach((op) => {
+      const st = statusInfo(op);
+      const item = document.createElement('div');
+      item.className = 'op-item';
+      item.innerHTML = `
+        <div class="op-head">
+          <div>
+            <div class="op-name">${op.community}</div>
+            <div class="op-sub ${st.cls}">${st.text}</div>
+          </div>
+        </div>
+        <div class="op-actions">
+          <button class="btn-secondary toggle-active-btn" type="button">${op.active ? '🔓 Bloquear' : '🔒 Liberar'}</button>
+          <button class="btn-secondary renew-btn" type="button">📅 Validade</button>
+          <button class="btn-secondary btn-danger end-live-btn" type="button">📡 Encerrar transmissão</button>
+        </div>
+      `;
+      item.querySelector('.toggle-active-btn').addEventListener('click', () => toggleActive(op, !op.active));
+      item.querySelector('.renew-btn').addEventListener('click', () => openRenewDialog(op));
+      item.querySelector('.end-live-btn').addEventListener('click', () => forceEndLive(op));
+      list.appendChild(item);
+    });
+  }
+
+  async function toggleActive(op, novoValor) {
+    try {
+      await updateDoc(doc(db, 'operators', op.uid), { active: novoValor });
+      await carregarComunidades();
+    } catch (e) {
+      alert('Não foi possível salvar. Tente de novo.');
+      await carregarComunidades();
+    }
+  }
+
+  async function forceEndLive(op) {
+    if (!confirm(`Encerrar a transmissão ao vivo de "${op.community}"? Não apaga os números já sorteados.`)) return;
+    try {
+      await updateDoc(doc(db, 'rifao_live', op.uid), { liveNow: false });
+      alert('Transmissão encerrada.');
+    } catch (e) {
+      // Se a comunidade nunca publicou nada, o documento nem existe —
+      // não tem o que encerrar, tudo bem.
+    }
+  }
+
+  function buildDayChips(container, onSelect, initialValue) {
+    container.innerHTML = '';
+    const options = [...DAY_OPTIONS, null];
+    options.forEach((d) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'day-chip' + (d === initialValue ? ' selected' : '');
+      chip.textContent = d === null ? 'Sem prazo' : `${d}d`;
+      chip.addEventListener('click', () => {
+        container.querySelectorAll('.day-chip').forEach((c) => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        onSelect(d);
+      });
+      container.appendChild(chip);
+    });
+  }
+
+  // ---- Modal: nova comunidade ----
+  const createOverlay = $('createOverlay');
+  let createSelectedDays = 30;
+
+  $('newCommunityBtn').addEventListener('click', () => {
+    $('newCommunity').value = '';
+    $('newEmail').value = '';
+    $('newPassword').value = '';
+    $('createError').classList.add('hidden');
+    createSelectedDays = 30;
+    buildDayChips($('createDayChips'), (d) => (createSelectedDays = d), 30);
+    createOverlay.classList.add('show');
+  });
+  $('createCancelBtn').addEventListener('click', () => createOverlay.classList.remove('show'));
+  createOverlay.addEventListener('click', (e) => { if (e.target === createOverlay) createOverlay.classList.remove('show'); });
+
+  $('createSubmitBtn').addEventListener('click', async () => {
+    const community = $('newCommunity').value.trim();
+    const email = $('newEmail').value.trim();
+    const password = $('newPassword').value;
+    const errBox = $('createError');
+    errBox.classList.add('hidden');
+
+    if (!community || !email || !password) {
+      errBox.textContent = 'Preencha todos os campos.';
+      errBox.classList.remove('hidden');
+      return;
+    }
+    if (password.length < 6) {
+      errBox.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+      errBox.classList.remove('hidden');
+      return;
+    }
+
+    $('createSubmitBtn').disabled = true;
+    $('createSubmitBtn').textContent = 'Criando...';
+    try {
+      // Cria a conta de login via REST (accounts:signUp) em vez do SDK,
+      // porque o SDK trocaria a sessão logada do navegador (você, admin)
+      // pra essa conta nova — a REST não afeta a sessão atual.
+      const signUpRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, returnSecureToken: true }),
+        }
+      );
+      const signUpData = await signUpRes.json();
+      if (!signUpRes.ok) {
+        const code = signUpData.error?.message || '';
+        throw new Error(
+          code.includes('EMAIL_EXISTS') ? 'Já existe uma conta com esse e-mail.' :
+          code.includes('WEAK_PASSWORD') ? 'Senha fraca demais.' :
+          'Não foi possível criar a conta.'
+        );
+      }
+      const newUid = signUpData.localId;
+
+      const expiresAt = createSelectedDays == null
+        ? null
+        : new Date(Date.now() + createSelectedDays * 86400000);
+
+      const docData = { community, role: 'community', active: true };
+      if (expiresAt) docData.expiresAt = expiresAt;
+
+      await setDoc(doc(db, 'operators', newUid), docData);
+
+      createOverlay.classList.remove('show');
+      await carregarComunidades();
+    } catch (e) {
+      errBox.textContent = e.message || 'Erro ao criar comunidade.';
+      errBox.classList.remove('hidden');
+    } finally {
+      $('createSubmitBtn').disabled = false;
+      $('createSubmitBtn').textContent = 'Criar';
+    }
+  });
+
+  // ---- Modal: validade ----
+  const renewOverlay = $('renewOverlay');
+  let renewTarget = null;
+  let renewSelectedDays = 30;
+
+  function openRenewDialog(op) {
+    renewTarget = op;
+    $('renewTitle').textContent = `Validade — ${op.community}`;
+    $('renewCurrent').textContent = op.expiresAt
+      ? `Hoje: vence em ${diasRestantes(op.expiresAt)} dia(s).`
+      : 'Hoje: sem prazo de validade definido.';
+    $('renewError').classList.add('hidden');
+    renewSelectedDays = 30;
+    buildDayChips($('renewDayChips'), (d) => (renewSelectedDays = d), 30);
+    renewOverlay.classList.add('show');
+  }
+  $('renewCancelBtn').addEventListener('click', () => renewOverlay.classList.remove('show'));
+  renewOverlay.addEventListener('click', (e) => { if (e.target === renewOverlay) renewOverlay.classList.remove('show'); });
+
+  $('renewSubmitBtn').addEventListener('click', async () => {
+    if (!renewTarget) return;
+    $('renewSubmitBtn').disabled = true;
+    try {
+      const expiresAt = renewSelectedDays == null
+        ? null
+        : new Date(Date.now() + renewSelectedDays * 86400000);
+      await setDoc(doc(db, 'operators', renewTarget.uid), { expiresAt }, { merge: true });
+      renewOverlay.classList.remove('show');
+      await carregarComunidades();
+    } catch (e) {
+      $('renewError').textContent = 'Não foi possível salvar.';
+      $('renewError').classList.remove('hidden');
+    } finally {
+      $('renewSubmitBtn').disabled = false;
+    }
   });
 </script>
 </body>
