@@ -456,9 +456,9 @@
 </style>
 </head>
 <body>
-  <img class="logo" src="logo.png" alt="Rifon no Telon">
-  <h1>Entrar</h1>
-  <div class="subtitle">Organizador ou administrador — faça login pra continuar.</div>
+  <img class="logo" src="logo.png" alt="Rifon no Telon" id="pageLogo">
+  <h1 id="pageTitle">Entrar</h1>
+  <div class="subtitle" id="pageSubtitle">Organizador ou administrador — faça login pra continuar.</div>
 
   <!-- ---------- Tela de login ---------- -->
   <div class="card" id="loginCard">
@@ -524,7 +524,6 @@
         <h2>Painel de Administração</h2>
         <p class="admin-count" id="adminCount">Carregando comunidades...</p>
       </div>
-      <button class="ghost-btn" id="adminLogoutBtn" type="button">Sair ⏏</button>
     </div>
 
     <div class="section-title">
@@ -532,6 +531,10 @@
       <button class="btn-add" id="newCommunityBtn" type="button">＋ Nova comunidade</button>
     </div>
     <div id="opsList"><div class="empty-state">Carregando...</div></div>
+
+    <div class="card" style="margin-top: 6px;">
+      <button class="btn-secondary" id="adminLogoutBtn" type="button">Sair da conta</button>
+    </div>
   </div>
 
   <!-- Modal: nova comunidade -->
@@ -675,6 +678,8 @@
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
+      $('pageTitle').classList.remove('hidden');
+      $('pageSubtitle').classList.remove('hidden');
       loginCard.classList.remove('hidden');
       hideAllPanels();
       currentUid = null;
@@ -698,6 +703,8 @@
     }
 
     if (!operatorData || !contaLiberada(operatorData)) {
+      $('pageTitle').classList.remove('hidden');
+      $('pageSubtitle').classList.remove('hidden');
       loginCard.classList.remove('hidden');
       $('loginError').textContent = !operatorData
         ? 'Essa conta ainda não foi liberada. Fale com o suporte.'
@@ -709,6 +716,10 @@
       return;
     }
 
+    // Logado — esconde o cabeçalho de login, já que agora aparece o
+    // painel certo (admin ou comunidade) com o próprio título.
+    $('pageTitle').classList.add('hidden');
+    $('pageSubtitle').classList.add('hidden');
     loginCard.classList.add('hidden');
     hideAllPanels();
 
@@ -716,7 +727,6 @@
     // muda de acordo com o "role", igual no app Windows.
     if (operatorData.role === 'admin') {
       adminPanelWrap.classList.remove('hidden');
-      logoutCard.classList.remove('hidden');
       await carregarComunidades();
       return;
     }
