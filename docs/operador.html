@@ -892,6 +892,20 @@
         });
       });
       ops.sort((a, b) => a.community.localeCompare(b.community, 'pt-BR'));
+
+      // Busca também se cada uma está "ao vivo agora" (rifao_live/{uid}),
+      // pra poder ligar/desligar a transmissão pelo painel de admin.
+      await Promise.all(
+        ops.map(async (op) => {
+          try {
+            const liveSnap = await getDoc(doc(db, 'rifao_live', op.uid));
+            op.liveNow = liveSnap.exists() && liveSnap.data().liveNow === true;
+          } catch (e) {
+            op.liveNow = false;
+          }
+        })
+      );
+
       $('adminCount').textContent = ops.length === 0
         ? 'Nenhuma comunidade cadastrada'
         : ops.length === 1
@@ -936,7 +950,7 @@
         <div class="op-head">
           <div>
             <div class="op-name">${op.community}</div>
-            <div class="op-meta">${st.meta}</div>
+            <div class="op-meta">${st.meta}${op.liveNow ? ' · <span style="color:#E05A5A;">● ao vivo agora</span>' : ''}</div>
           </div>
           <span class="status-pill ${st.cls}">${st.pill}</span>
         </div>
@@ -949,15 +963,15 @@
             <span class="icon">📅</span>
             <span>Validade</span>
           </button>
-          <button class="op-action-btn danger end-live-btn" type="button">
-            <span class="icon">📡</span>
-            <span>Encerrar</span>
+          <button class="op-action-btn ${op.liveNow ? 'danger' : ''} toggle-live-btn" type="button">
+            <span class="icon">${op.liveNow ? '📡' : '📶'}</span>
+            <span>${op.liveNow ? 'Encerrar' : 'Colocar no ar'}</span>
           </button>
         </div>
       `;
       item.querySelector('.toggle-active-btn').addEventListener('click', () => toggleActive(op, !op.active));
       item.querySelector('.renew-btn').addEventListener('click', () => openRenewDialog(op));
-      item.querySelector('.end-live-btn').addEventListener('click', () => forceEndLive(op));
+      item.querySelector('.toggle-live-btn').addEventListener('click', () => toggleLiveNow(op));
       list.appendChild(item);
     });
   }
@@ -972,14 +986,19 @@
     }
   }
 
-  async function forceEndLive(op) {
-    if (!confirm(`Encerrar a transmissão ao vivo de "${op.community}"? Não apaga os números já sorteados.`)) return;
+  async function toggleLiveNow(op) {
+    const novoValor = !op.liveNow;
+    if (novoValor && !confirm(`Colocar "${op.community}" no ar? Ela vai aparecer na lista de sorteios ao vivo pro público, mesmo que ela mesma não tenha ligado.`)) return;
+    if (!novoValor && !confirm(`Encerrar a transmissão ao vivo de "${op.community}"? Não apaga os números já sorteados.`)) return;
     try {
-      await updateDoc(doc(db, 'rifao_live', op.uid), { liveNow: false });
-      alert('Transmissão encerrada.');
+      // setDoc com merge (em vez de updateDoc) funciona mesmo se essa
+      // comunidade nunca tiver publicado nada ainda — nesse caso o
+      // documento rifao_live/{uid} nem existe, e updateDoc iria falhar.
+      await setDoc(doc(db, 'rifao_live', op.uid), { liveNow: novoValor }, { merge: true });
+      await carregarComunidades();
     } catch (e) {
-      // Se a comunidade nunca publicou nada, o documento nem existe —
-      // não tem o que encerrar, tudo bem.
+      alert('Não foi possível salvar. Tente de novo.');
+      await carregarComunidades();
     }
   }
 
